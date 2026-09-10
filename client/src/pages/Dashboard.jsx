@@ -10,14 +10,13 @@ import FunnelBars, { FUNNEL_COLORS } from "../components/FunnelBars.jsx";
 import { GATES, gateName } from "../lib/gates.js";
 
 export default function Dashboard() {
-  const { displayName, roleLabel, isAdmin, role } = useAuth();
+  const { displayName, roleLabel, isAdmin, canSeeFullWorkflow, canCreateLead } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [kpis, setKpis] = useState(null);
   const [pending, setPending] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
-  const canCreate = isAdmin || role === "business_development";
 
   function reload() {
     api.kpis().then(setKpis).catch((e) => toast.error(e.message));
@@ -29,7 +28,7 @@ export default function Dashboard() {
     setCreateBusy(true);
     try {
       const lead = await api.createLead(form);
-      toast.success(`${lead.ref_code} created — Stage 1 RFI is now open.`);
+      toast.success(`${lead.ref_code} created.`);
       setCreateOpen(false);
       navigate(`/leads/${lead.id}`);
     } catch (err) {
@@ -39,21 +38,23 @@ export default function Dashboard() {
     }
   }
 
+  const myCount = pending?.itemsToAction?.length || 0;
+
   return (
     <div className="rm-page">
       <div className="rm-page-head">
         <div>
-          <h1>{isAdmin ? "Command Center" : `Welcome, ${displayName.split(" ")[0]}`}</h1>
-          <p>{roleLabel}{isAdmin ? " — create leads, and approve or reject every stage from right here." : ""}</p>
+          <h1>{canSeeFullWorkflow ? (isAdmin ? "Command Center" : "BD workspace") : `Hello, ${displayName.split(" ")[0]}`}</h1>
+          <p>{canSeeFullWorkflow ? roleLabel : `${roleLabel} — your open actions`}</p>
         </div>
-        {(canCreate) ? (
+        {canCreateLead ? (
           <div className="rm-page-actions">
             <button type="button" className="btn btn-theme" onClick={() => setCreateOpen(true)}><i className="fas fa-plus" /> New lead</button>
           </div>
         ) : null}
       </div>
 
-      {kpis ? (
+      {canSeeFullWorkflow && kpis ? (
         <div className="rm-kpi-row rm-kpi-row--6" style={{ marginBottom: 16 }}>
           <Kpi label="Total leads" value={kpis.total} tone="teal" icon="fa-diagram-project" />
           <Kpi label="Active" value={kpis.active} tone="green" icon="fa-bolt" />
@@ -64,45 +65,54 @@ export default function Dashboard() {
         </div>
       ) : null}
 
+      {!canSeeFullWorkflow ? (
+        <div className="rm-kpi-row" style={{ marginBottom: 16, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+          <Kpi label="Open for you" value={myCount} tone="teal" icon="fa-list-check" />
+          <Kpi label="Function" value={roleLabel} tone="slate" icon="fa-user-tag" />
+        </div>
+      ) : null}
+
       {isAdmin ? (
         <AdminApprovalCenter pending={pending} onChanged={reload} />
       ) : (
-        <RolePendingBox pending={pending} />
+        <RolePendingBox pending={pending} taskOnly={!canSeeFullWorkflow} />
       )}
 
-      <div className="row" style={{ marginTop: 0 }}>
-        <div className="col-sm-7">
-          <Box title="Governed workflow" subtitle="Kavis CDMO NPI stage-gate process">
-            <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-              {GATES.map((g) => (
-                <li key={g.key} style={{ padding: "10px 0", borderBottom: "1px dashed #e2e8f0" }}>
-                  <b style={{ display: "block", fontSize: 13.5 }}>{g.name}</b>
-                  <span className="text-muted" style={{ fontSize: 12.5 }}>
-                    {g.key === "rfi" && "Feasibility, indicative timelines & CAPEX."}
-                    {g.key === "rfp" && "Costing, supply price, firm CAPEX, proposal acceptance."}
-                    {g.key === "agreement" && "LOI/MSA/QTA executed + validated technical & quality data package."}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </Box>
+      {canSeeFullWorkflow ? (
+        <div className="row" style={{ marginTop: 0 }}>
+          <div className="col-sm-7">
+            <Box title="Governed workflow" subtitle="Kavis CDMO NPI stage-gate process">
+              <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+                {GATES.map((g) => (
+                  <li key={g.key} style={{ padding: "10px 0", borderBottom: "1px dashed #e2e8f0" }}>
+                    <b style={{ display: "block", fontSize: 13.5 }}>{g.name}</b>
+                    <span className="text-muted" style={{ fontSize: 12.5 }}>
+                      {g.key === "rfi" && "Feasibility, indicative timelines & CAPEX."}
+                      {g.key === "rfp" && "Costing, supply price, firm CAPEX, proposal acceptance."}
+                      {g.key === "agreement" && "LOI/MSA/QTA executed + validated technical & quality data package."}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </Box>
+          </div>
+          <div className="col-sm-5">
+            <Box title="Stage-wise funnel" tools={<Link to="/funnel" className="text-muted" style={{ fontSize: 12.5 }}>Full view &rarr;</Link>}>
+              {kpis ? (
+                <FunnelBars
+                  onSelect={(item) => navigate(`/leads?gate=${item.id}`)}
+                  items={GATES.map((g) => ({
+                    id: g.key,
+                    title: g.name.replace(/^Stage \d — /, ""),
+                    value: `${kpis.byGate[g.key]} lead${kpis.byGate[g.key] === 1 ? "" : "s"}`,
+                    color: FUNNEL_COLORS[g.key],
+                  }))}
+                />
+              ) : null}
+            </Box>
+          </div>
         </div>
-        <div className="col-sm-5">
-          <Box title="Stage-wise funnel" tools={<Link to="/funnel" className="text-muted" style={{ fontSize: 12.5 }}>Full view &rarr;</Link>}>
-            {kpis ? (
-              <FunnelBars
-                onSelect={(item) => navigate(`/leads?gate=${item.id}`)}
-                items={GATES.map((g) => ({
-                  id: g.key,
-                  title: g.name.replace(/^Stage \d — /, ""),
-                  value: `${kpis.byGate[g.key]} lead${kpis.byGate[g.key] === 1 ? "" : "s"}`,
-                  color: FUNNEL_COLORS[g.key],
-                }))}
-              />
-            ) : null}
-          </Box>
-        </div>
-      </div>
+      ) : null}
 
       {createOpen ? (
         <Modal title="New lead" onClose={() => setCreateOpen(false)} wide>
@@ -113,22 +123,25 @@ export default function Dashboard() {
   );
 }
 
-function RolePendingBox({ pending }) {
+function RolePendingBox({ pending, taskOnly }) {
   if (!pending) return null;
   return (
-    <Box title="Your pending items" subtitle="Assigned to your function across all active leads">
+    <Box
+      title={taskOnly ? "Your actions" : "Your pending items"}
+      subtitle={taskOnly ? "Open an item to update — only your assigned work is listed" : "Assigned to your function across active leads"}
+    >
       {!pending.itemsToAction?.length ? (
-        <EmptyState icon="fa-circle-check" title="Nothing pending" hint="Everything assigned to your function is up to date." />
+        <EmptyState icon="fa-circle-check" title="Nothing pending" hint="No open actions for your function right now." />
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
           {pending.itemsToAction.map((it) => (
             <li key={`${it.leadId}-${it.itemKey}`}>
-              <Link to={`/leads/${it.leadId}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 12, textDecoration: "none", color: "inherit" }}>
+              <Link to={`/leads/${it.leadId}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", border: "1px solid #e2e8f0", borderRadius: 12, textDecoration: "none", color: "inherit", background: "#fff" }}>
                 <span>
                   <b style={{ display: "block", fontSize: 13.5 }}>{it.itemLabel}</b>
                   <span className="text-muted" style={{ fontSize: 12 }}>{it.refCode} · {it.product} · {it.clientName}</span>
                 </span>
-                <span className={`label label-${it.status === "sent_back" ? "warning" : "info"}`}>{it.status === "sent_back" ? "Sent back" : it.gateName}</span>
+                <span className={`label label-${it.status === "sent_back" ? "warning" : "info"}`}>{it.status === "sent_back" ? "Sent back" : "Act now"}</span>
               </Link>
             </li>
           ))}
@@ -144,7 +157,7 @@ function AdminApprovalCenter({ pending, onChanged }) {
   const nothing = !pending.itemsAwaitingApproval?.length && !pending.gatesAwaitingApproval?.length;
 
   return (
-    <Box title="Approve or reject" subtitle="Every submission and gate ready to close, across the whole pipeline — act here without opening each lead">
+    <Box title="Approve or reject" subtitle="Submissions and gates ready to close">
       {nothing ? (
         <EmptyState icon="fa-circle-check" title="Nothing awaiting approval" hint="All caught up across the pipeline." />
       ) : (

@@ -39,6 +39,20 @@ function RequireAdmin({ children }) {
   return children;
 }
 
+function RequireFullWorkflow({ children }) {
+  const { canSeeFullWorkflow, loading } = useAuth();
+  if (loading) return <div className="loading-screen">Loading&hellip;</div>;
+  if (!canSeeFullWorkflow) return <Navigate to="/" replace />;
+  return children;
+}
+
+function RequireCreateLead({ children }) {
+  const { canCreateLead, loading } = useAuth();
+  if (loading) return <div className="loading-screen">Loading&hellip;</div>;
+  if (!canCreateLead) return <Navigate to="/" replace />;
+  return children;
+}
+
 function AppRoutes() {
   const { user } = useAuth();
   return (
@@ -54,9 +68,9 @@ function AppRoutes() {
         }
       >
         <Route path="/" element={<Dashboard />} />
-        <Route path="/funnel" element={<Funnel />} />
+        <Route path="/funnel" element={<RequireFullWorkflow><Funnel /></RequireFullWorkflow>} />
         <Route path="/leads" element={<Leads />} />
-        <Route path="/leads/new" element={<AddLead />} />
+        <Route path="/leads/new" element={<RequireCreateLead><AddLead /></RequireCreateLead>} />
         <Route path="/leads/:id" element={<LeadView />} />
         <Route path="/users" element={<RequireAdmin><Users /></RequireAdmin>} />
         <Route path="/account" element={<Account />} />

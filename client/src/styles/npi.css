@@ -11,10 +11,48 @@
 
 .header-logo--mark {
   width: 38px; height: 38px; border-radius: 10px;
-  background: linear-gradient(155deg, #1e5f74, #1f8a5f);
+  background: linear-gradient(155deg, #0D77B2, #0f5299);
   color: #fff; display: flex; align-items: center; justify-content: center;
   font-family: var(--font-display); font-weight: 800; font-size: 13px;
 }
+
+.logo--kavis {
+  justify-content: flex-start !important;
+  padding: 0 14px !important;
+  gap: 10px !important;
+  background: linear-gradient(90deg, #0D77B2, #0f5299) !important;
+  border-right: none !important;
+  color: #fff !important;
+}
+.logo--kavis .header-logo-img {
+  width: 36px !important;
+  height: 36px !important;
+  max-width: 36px !important;
+  max-height: 36px !important;
+  object-fit: contain !important;
+  background: #fff;
+  border-radius: 8px;
+  padding: 3px;
+}
+.logo--kavis .header-logo-text {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+  white-space: nowrap;
+}
+.sidebar-collapse .logo--kavis .header-logo-text { display: none; }
+
+.kavis-shell .sidebar-menu > li.active > a,
+.kavis-shell .sidebar-menu > li > a:hover {
+  color: var(--main-theme-color);
+}
+.kavis-shell .sidebar-menu > li.active > a {
+  border-left: 3px solid var(--kavis-accent, #e85a4f);
+}
+
+.wf-progress--task { margin-top: 14px; }
+.stage-workspace.is-task-mode .stage-panel { margin-top: 0; }
 
 .gate-group {
   background: var(--box-bg);

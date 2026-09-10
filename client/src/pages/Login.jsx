@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
-import { ArrowRight, Eye, EyeOff, Lock, User, Activity } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, User } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useAuth } from "../api/AuthContext.jsx";
 import "../components/login/login-suite.css";
@@ -55,10 +55,10 @@ export default function Login() {
       await login(cleanUsername, password);
       if (!reduce) {
         confetti({
-          particleCount: 70,
-          spread: 62,
+          particleCount: 60,
+          spread: 58,
           origin: { y: 0.55, x: 0.5 },
-          colors: ["#1e5f74", "#1f8a5f", "#c2701c", "#0D4574"],
+          colors: ["#0D77B2", "#0f5299", "#16b7cc", "#e85a4f"],
         });
       }
       const next = safeNext(new URLSearchParams(location.search).get("next"));
@@ -74,7 +74,7 @@ export default function Login() {
   };
 
   return (
-    <div className="em-page">
+    <div className="em-page em-page--kavis">
       <div className="em-bg" aria-hidden>
         <span className="em-orb em-orb--a" />
         <span className="em-orb em-orb--b" />
@@ -86,10 +86,10 @@ export default function Login() {
         <section className="em-auth">
           <div className={`em-card${shake ? " is-shake" : ""}`}>
             <div className="em-card-head em-card-head--brand">
-              <span className="em-card-logo em-card-logo--mark" aria-hidden>KV</span>
+              <img src="/kavis-mark.png" alt="Kavis Pharma" className="em-card-logo" />
               <div>
-                <h2>Welcome back</h2>
-                <p>Sign in to the Kavis Pharma NPI stage-gate workflow.</p>
+                <h2>Kavis Pharma</h2>
+                <p>Sign in to your workspace</p>
               </div>
             </div>
 
@@ -107,7 +107,7 @@ export default function Login() {
                       if (userError) setUserError(false);
                       if (errorMsg) setErrorMsg("");
                     }}
-                    placeholder="e.g. bd.vinay"
+                    placeholder="Username"
                     autoComplete="username"
                     autoFocus
                   />
@@ -127,7 +127,7 @@ export default function Login() {
                       if (passwordError) setPasswordError(false);
                       if (errorMsg) setErrorMsg("");
                     }}
-                    placeholder="Enter your password"
+                    placeholder="Password"
                     autoComplete="current-password"
                   />
                   <button
@@ -154,17 +154,13 @@ export default function Login() {
                 )}
               </button>
             </form>
-
-            <div className="em-footnote">
-              Access is per person and role-scoped to Kavis Pharma's RFI &rarr; RFP &rarr; Agreement process — each function only actions the items assigned to it. Contact Senior Management for an account.
-            </div>
           </div>
         </section>
       </div>
 
       <footer className="em-foot">
-        <Activity size={12} />
-        Extrovis &middot; Kavis Pharma &middot; NPI Portal
+        Part of the <a href="https://extrovis.refex.group/" target="_blank" rel="noreferrer">Extrovis</a> family ·{" "}
+        <a href="https://kavispharma.com/" target="_blank" rel="noreferrer">kavispharma.com</a>
       </footer>
     </div>
   );

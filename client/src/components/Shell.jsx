@@ -19,22 +19,6 @@ function useIsNarrow() {
   return narrow;
 }
 
-const NAV = [
-  { to: "/", label: "Dashboard", icon: "fa-gauge-high", end: true },
-  { to: "/funnel", label: "Sales Funnel", icon: "fa-filter" },
-  { to: "/leads", label: "Pipeline", icon: "fa-diagram-project" },
-  { to: "/leads/new", label: "New Lead", icon: "fa-plus-circle" },
-];
-
-const TITLES = {
-  "/": ["Command Center", "Create, track and approve every stage"],
-  "/funnel": ["Sales Funnel", "RFI to Agreement, stage by stage"],
-  "/leads": ["Pipeline", "Every lead across every gate"],
-  "/leads/new": ["New Lead", "Opens Stage 1 — RFI"],
-  "/users": ["Users & Access", "Kavis Pharma cross-function logins"],
-  "/account": ["Account", "Your sign-in"],
-};
-
 export default function Shell() {
   const isNarrow = useIsNarrow();
   const [collapsed, setCollapsed] = useState(() =>
@@ -45,23 +29,35 @@ export default function Shell() {
   const [q, setQ] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, isAdmin, roleLabel, displayName } = useAuth();
+  const { logout, isAdmin, canSeeFullWorkflow, canCreateLead, roleLabel, displayName } = useAuth();
   const path = location.pathname;
+
+  const titles = canSeeFullWorkflow
+    ? {
+        "/": ["Command Center", "Pipeline overview and approvals"],
+        "/funnel": ["Stage Funnel", "RFI to Agreement"],
+        "/leads": ["Pipeline", "All NPI leads"],
+        "/leads/new": ["New Lead", "Create NPI intake"],
+        "/users": ["Users & Access", "Team logins"],
+        "/account": ["Account", "Your sign-in"],
+      }
+    : {
+        "/": ["My tasks", "Items assigned to your function"],
+        "/leads": ["My pipeline", "Leads that need your action"],
+        "/account": ["Account", "Your sign-in"],
+      };
+
   const [title, subtitle] = /^\/leads\/\d+/.test(path)
-    ? ["Lead Workspace", "Gates, items, approvals and history"]
-    : (TITLES[path] || ["Kavis Pharma", "NPI Portal"]);
+    ? (canSeeFullWorkflow ? ["Lead workspace", "Stages, checklist and history"] : ["Your work item", "Update what is assigned to you"])
+    : (titles[path] || ["Kavis Pharma", "NPI Portal"]);
   const drawerOpen = isNarrow && !collapsed;
 
-  useEffect(() => {
-    setCollapsed(isNarrow);
-  }, [isNarrow]);
-
+  useEffect(() => { setCollapsed(isNarrow); }, [isNarrow]);
   useEffect(() => {
     if (isNarrow) setCollapsed(true);
     setUserOpen(false);
     setCreateOpen(false);
   }, [location.pathname, isNarrow]);
-
   useEffect(() => {
     if (!drawerOpen) return;
     const prev = document.body.style.overflow;
@@ -70,25 +66,28 @@ export default function Shell() {
   }, [drawerOpen]);
 
   const closeDrawer = () => { if (isNarrow) setCollapsed(true); };
-
   const searchSubmit = (e) => {
     e.preventDefault();
     navigate(`/leads?q=${encodeURIComponent(q.trim())}`);
   };
 
   const items = [
-    ...NAV,
+    { to: "/", label: canSeeFullWorkflow ? "Dashboard" : "My tasks", icon: "fa-gauge-high", end: true },
+    ...(canSeeFullWorkflow ? [{ to: "/funnel", label: "Stage Funnel", icon: "fa-filter" }] : []),
+    { to: "/leads", label: canSeeFullWorkflow ? "Pipeline" : "My pipeline", icon: "fa-diagram-project" },
+    ...(canCreateLead ? [{ to: "/leads/new", label: "New Lead", icon: "fa-plus-circle" }] : []),
     ...(isAdmin ? [{ to: "/users", label: "Users & Access", icon: "fa-user-shield" }] : []),
   ];
 
   return (
-    <div className={`wrapper ${collapsed ? "sidebar-collapse" : ""} ${!collapsed ? "sidebar-open" : ""}${isNarrow ? " is-narrow" : ""}`}>
+    <div className={`wrapper kavis-shell ${collapsed ? "sidebar-collapse" : ""} ${!collapsed ? "sidebar-open" : ""}${isNarrow ? " is-narrow" : ""}`}>
       {drawerOpen ? (
         <button type="button" className="sidebar-backdrop" aria-label="Close menu" onClick={closeDrawer} />
       ) : null}
       <header className="main-header">
-        <NavLink to="/" className="logo" aria-label="Kavis Pharma" onClick={closeDrawer}>
-          <span className="header-logo header-logo--mark">KV</span>
+        <NavLink to="/" className="logo logo--kavis" aria-label="Kavis Pharma" onClick={closeDrawer}>
+          <img src="/kavis-mark.png" alt="" className="header-logo-img" />
+          <span className="header-logo-text">KAVIS PHARMA</span>
         </NavLink>
         <nav className="navbar">
           <button
@@ -101,24 +100,26 @@ export default function Shell() {
             <i className="fas fa-bars" />
           </button>
           <form className="header-search" onSubmit={searchSubmit}>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search leads, clients…" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={canSeeFullWorkflow ? "Search leads, clients…" : "Search my tasks…"} />
             <button type="submit"><i className="fas fa-search" /></button>
           </form>
           <div className="navbar-custom-menu">
             <ul className="navbar-nav">
               <li><NavLink to="/leads" title="Pipeline"><i className="fas fa-diagram-project" /></NavLink></li>
-              <li><NavLink to="/funnel" title="Sales Funnel"><i className="fas fa-filter" /></NavLink></li>
+              {canSeeFullWorkflow ? <li><NavLink to="/funnel" title="Funnel"><i className="fas fa-filter" /></NavLink></li> : null}
               {isAdmin ? <li><NavLink to="/users" title="Users"><i className="fas fa-user-shield" /></NavLink></li> : null}
               <NotificationBell />
-              <li className={`dropdown ${createOpen ? "open" : ""}`}>
-                <button type="button" className="nav-icon-btn" onClick={() => setCreateOpen((o) => !o)}>
-                  <i className="fas fa-plus" />
-                </button>
-                <div className="dropdown-menu">
-                  <NavLink to="/leads/new" onClick={() => setCreateOpen(false)}>New lead</NavLink>
-                  {isAdmin ? <NavLink to="/users" onClick={() => setCreateOpen(false)}>New user</NavLink> : null}
-                </div>
-              </li>
+              {canCreateLead ? (
+                <li className={`dropdown ${createOpen ? "open" : ""}`}>
+                  <button type="button" className="nav-icon-btn" onClick={() => setCreateOpen((o) => !o)}>
+                    <i className="fas fa-plus" />
+                  </button>
+                  <div className="dropdown-menu">
+                    <NavLink to="/leads/new" onClick={() => setCreateOpen(false)}>New lead</NavLink>
+                    {isAdmin ? <NavLink to="/users" onClick={() => setCreateOpen(false)}>New user</NavLink> : null}
+                  </div>
+                </li>
+              ) : null}
               <li className={`dropdown ${userOpen ? "open" : ""}`}>
                 <button type="button" className="nav-icon-btn nav-user-btn" onClick={() => setUserOpen((o) => !o)}>
                   <i className="fas fa-user" aria-hidden="true" />
@@ -167,7 +168,9 @@ export default function Shell() {
       </div>
 
       <footer className="main-footer">
-        <strong>Extrovis &copy; {new Date().getFullYear()}</strong> Kavis Pharma &middot; NPI Portal.
+        <strong>Kavis Pharma</strong> · Part of{" "}
+        <a href="https://extrovis.refex.group/" target="_blank" rel="noreferrer">Extrovis</a>
+        {" "}· <a href="https://kavispharma.com/" target="_blank" rel="noreferrer">kavispharma.com</a>
       </footer>
     </div>
   );

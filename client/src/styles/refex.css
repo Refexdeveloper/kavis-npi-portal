@@ -1,21 +1,21 @@
-/* Kavis Pharma NPI Portal — app shell, tables, forms, and dashboard cards (design system ported from Extrovis 3i Sales Funnel) */
+/* Kavis Pharma NPI Portal — theme aligned to kavispharma.com / Extrovis */
 :root {
-  --main-theme-color: #2079B7;
-  --main-theme-hover: #0D4574;
-  --btn-theme-base: #2079B7;
+  --main-theme-color: #0D77B2;
+  --main-theme-hover: #0f5299;
+  --btn-theme-base: #0D77B2;
   --nav-primary-text-color: #0F172A;
-  --color-bg: #F8FAFC;
-  --color-fg: #0F172A;
+  --color-bg: #F5F9FC;
+  --color-fg: #1a2332;
   --color-muted: #64748B;
   --box-bg: #ffffff;
   --box-header-bottom-border-color: #E2E8F0;
-  --box-header-top-border-color: #2079B7;
-  --link-color: #2079B7;
-  --link-hover: #0D4574;
-  --sidenav-bg: #F8FAFC;
+  --box-header-top-border-color: #0D77B2;
+  --link-color: #0D77B2;
+  --link-hover: #0f5299;
+  --sidenav-bg: #FFFFFF;
   --sidenav-text-nohover-color: #64748B;
-  --sidenav-text-hover-color: #2079B7;
-  --sidenav-hover-color-bg: rgba(32, 121, 183, 0.12);
+  --sidenav-text-hover-color: #0D77B2;
+  --sidenav-hover-color-bg: rgba(13, 119, 178, 0.1);
   --table-stripe-bg: transparent;
   --table-stripe-bg-alt: #F8FAFC;
   --table-border-row-color: #E2E8F0;
@@ -27,17 +27,20 @@
   --text-help: #64748B;
   --sidebar-width: 256px;
   --header-height: 64px;
-  --radius: 16px;
-  --radius-sm: 12px;
+  --radius: 14px;
+  --radius-sm: 10px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --shadow-soft: 0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.04);
   --shadow-lift: 0 8px 24px rgba(15, 23, 42, 0.1);
-  --font-display: "Plus Jakarta Sans", "Manrope", "Segoe UI", sans-serif;
-  --font-body: "Plus Jakarta Sans", "Manrope", "Segoe UI", sans-serif;
-  --accent-bright: #3F8BA2;
+  --font-display: "Manrope", "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  --font-body: "IBM Plex Sans", "Manrope", "Segoe UI", sans-serif;
+  --accent-bright: #16b7cc;
   --accent-lime: #8CBC43;
-  --accent-orange: #EF6A31;
-  --accent-indigo: #44467D;
+  --accent-orange: #e85a4f;
+  --accent-indigo: #0f5299;
+  --kavis-nav: #0D77B2;
+  --kavis-nav-deep: #0f5299;
+  --kavis-accent: #e85a4f;
 }
 
 *, *::before, *::after { box-sizing: border-box; }

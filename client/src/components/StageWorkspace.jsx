@@ -21,7 +21,7 @@ function stepGroups(items) {
  * - Layer 2: only the active stage's current + next step shown in detail
  * - Past steps collapsed; locked future stages not expanded
  */
-export default function StageWorkspace({ lead, onChange }) {
+export default function StageWorkspace({ lead, onChange, taskMode = false }) {
   const { role, isAdmin } = useAuth();
   const toast = useToast();
   const [layer, setLayer] = useState(() => lead.gates.find((g) => g.isCurrent)?.key || lead.gates[0]?.key);
@@ -42,8 +42,11 @@ export default function StageWorkspace({ lead, onChange }) {
   const canGateApprove = isAdmin && gate.isCurrent && gate.allMandatoryApproved && lead.status === "active";
   const canReject = isAdmin && lead.status === "active" && (gate.isCurrent || gate.isComplete);
   const groups = stepGroups(gate.items || []);
-  const currentGroups = groups.filter((g) => g.step === gate.currentStep || g.step === gate.currentStep + 1);
-  const pastGroups = groups.filter((g) => g.step < gate.currentStep);
+  const actionable = taskMode
+    ? groups.filter((g) => g.step === gate.currentStep || g.step === gate.currentStep + 1)
+    : groups.filter((g) => g.step === gate.currentStep || g.step === gate.currentStep + 1);
+  const pastGroups = taskMode ? [] : groups.filter((g) => g.step < gate.currentStep);
+  const currentGroups = actionable;
 
   let stateLabel = "Pending";
   let stateTone = "default";
@@ -68,68 +71,76 @@ export default function StageWorkspace({ lead, onChange }) {
     }
   }
 
+  const visibleGates = taskMode ? lead.gates.filter((g) => g.isCurrent || g.isComplete) : lead.gates;
+
   return (
-    <div className="stage-workspace">
-      <div className="stage-rail" role="tablist" aria-label="NPI stages">
-        {lead.gates.map((g) => {
-          const active = g.key === gate.key;
-          const locked = g.isLocked && !isAdmin;
-          return (
-            <button
-              key={g.key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              className={`stage-rail__tab${active ? " is-active" : ""}${g.isComplete ? " is-done" : ""}${g.isLocked ? " is-locked" : ""}${g.isCurrent ? " is-current" : ""}`}
-              onClick={() => setLayer(g.key)}
-              style={{ "--stage-accent": GATE_COLORS[g.key] }}
-            >
-              <span className="stage-rail__num">{g.isComplete ? <i className="fas fa-check" /> : g.order}</span>
-              <span className="stage-rail__text">
-                <b>{g.name.replace(/^Stage \d — /, "")}</b>
-                <span>
-                  {g.isComplete ? "Completed" : g.isCurrent ? `Step ${g.currentStep} of ${g.totalSteps}` : g.isLocked ? "Not open yet" : "Available"}
-                  {locked ? " · detail limited" : ""}
+    <div className={`stage-workspace${taskMode ? " is-task-mode" : ""}`}>
+      {!taskMode ? (
+        <div className="stage-rail" role="tablist" aria-label="NPI stages">
+          {visibleGates.map((g) => {
+            const active = g.key === gate.key;
+            return (
+              <button
+                key={g.key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={`stage-rail__tab${active ? " is-active" : ""}${g.isComplete ? " is-done" : ""}${g.isLocked ? " is-locked" : ""}${g.isCurrent ? " is-current" : ""}`}
+                onClick={() => setLayer(g.key)}
+                style={{ "--stage-accent": GATE_COLORS[g.key] }}
+              >
+                <span className="stage-rail__num">{g.isComplete ? <i className="fas fa-check" /> : g.order}</span>
+                <span className="stage-rail__text">
+                  <b>{g.name.replace(/^Stage \d — /, "")}</b>
+                  <span>
+                    {g.isComplete ? "Completed" : g.isCurrent ? `Step ${g.currentStep} of ${g.totalSteps}` : g.isLocked ? "Not open yet" : "Available"}
+                  </span>
                 </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       <div className="stage-panel">
         <header className="stage-panel__head">
           <div>
-            <p className="stage-panel__eyebrow">Layer · Active department work</p>
-            <h3>{gate.name} <span className={`label label-${stateTone}`}>{stateLabel}</span></h3>
-            <p className="stage-panel__sub">
-              {gate.isLocked
-                ? "This stage opens after the previous gate is closed. Multi-department checklist stays hidden until then."
-                : gate.isComplete
-                  ? "Stage complete — switch layers only if you need the audit record for your function."
-                  : `Focus: Step ${gate.currentStep}. Other departments see only their assigned layer — not the full upcoming checklist.`}
-            </p>
+            <p className="stage-panel__eyebrow">{taskMode ? "Assigned work" : "Active department work"}</p>
+            <h3>{gate.name.replace(/^Stage \d — /, "")} <span className={`label label-${stateTone}`}>{stateLabel}</span></h3>
+            {!taskMode ? (
+              <p className="stage-panel__sub">
+                {gate.isLocked
+                  ? "This stage opens after the previous gate is closed."
+                  : gate.isComplete
+                    ? "Stage complete."
+                    : `Focus: Step ${gate.currentStep}.`}
+              </p>
+            ) : (
+              <p className="stage-panel__sub">Items listed below are for your function. Click <b>Update entry</b> to submit.</p>
+            )}
           </div>
-          <div className="stage-panel__meter">
-            <span className="mono">{gate.approvedCount}/{gate.itemCount}</span>
-            <span className="stage-panel__bar"><i style={{ width: `${pct}%`, background: GATE_COLORS[gate.key] }} /></span>
-          </div>
+          {!taskMode ? (
+            <div className="stage-panel__meter">
+              <span className="mono">{gate.approvedCount}/{gate.itemCount}</span>
+              <span className="stage-panel__bar"><i style={{ width: `${pct}%`, background: GATE_COLORS[gate.key] }} /></span>
+            </div>
+          ) : null}
         </header>
 
-        {!gate.isLocked && gate.trigger ? (
+        {!taskMode && !gate.isLocked && gate.trigger ? (
           <p className="gate-group__meta"><b>Trigger:</b> {gate.trigger}</p>
         ) : null}
 
         {gate.isLocked || gate.items.length === 0 ? (
           <div className="stage-empty">
             <i className="fas fa-layer-group" />
-            <b>{gate.isLocked ? "Stage locked" : "Nothing for your department here"}</b>
+            <b>{gate.isLocked ? "Stage locked" : "Nothing for your function here"}</b>
             <p>
               {role === "client"
-                ? "Internal Kavis teams are progressing this stage."
+                ? "Internal teams are progressing this stage."
                 : gate.isLocked
-                  ? "Complete the prior stage first. Future multi-department steps are intentionally not shown."
-                  : "No checklist items are visible for your role at this layer yet."}
+                  ? "Not open for your team yet."
+                  : "No checklist items are visible for your role right now."}
             </p>
           </div>
         ) : (
@@ -138,7 +149,7 @@ export default function StageWorkspace({ lead, onChange }) {
               <div className="stage-past">
                 <button type="button" className="stage-past__toggle" onClick={() => setShowPastSteps((v) => !v)}>
                   <i className={`fas fa-chevron-${showPastSteps ? "down" : "right"}`} />
-                  {pastGroups.reduce((n, g) => n + g.items.length, 0)} completed step{pastGroups.length > 1 ? "s" : ""} in this stage
+                  {pastGroups.reduce((n, g) => n + g.items.length, 0)} completed steps
                   <span>{showPastSteps ? "Hide" : "Show"}</span>
                 </button>
                 {showPastSteps ? pastGroups.map(({ step, items }) => (
@@ -157,16 +168,18 @@ export default function StageWorkspace({ lead, onChange }) {
             {currentGroups.map(({ step, items }) => {
               const isCurrent = step === gate.currentStep && !gate.isComplete;
               const isNext = step === gate.currentStep + 1 && !gate.isComplete;
+              const mine = taskMode ? items.filter((i) => !i.detailLocked || i.visibility === "full" || i.canSubmit) : items;
+              const showItems = taskMode ? (mine.length ? mine : items.filter((i) => i.step === gate.currentStep)) : items;
+              if (taskMode && !showItems.length) return null;
               return (
                 <div key={step} className={`step-group${isCurrent ? " is-current" : ""}${isNext ? " is-next" : ""}`}>
                   <div className="step-group__head">
-                    <span>{isCurrent ? "Your active layer" : "Next layer"} · Step {step} of {gate.totalSteps}</span>
-                    {items.length > 1 ? <span className="label label-info">{items.length} departments in parallel</span> : null}
+                    <span>{taskMode ? (isCurrent ? "Act on these" : "Coming next") : (isCurrent ? "Your active layer" : "Next layer")} · Step {step}</span>
                     {isCurrent ? <span className="label label-warning">Current</span> : null}
-                    {isNext ? <span className="label label-default">Next</span> : null}
+                    {isNext && !taskMode ? <span className="label label-default">Next</span> : null}
                   </div>
                   <div className="item-list">
-                    {items.map((item) => (
+                    {(taskMode ? showItems : items).map((item) => (
                       <ItemRow key={`${gate.key}-${item.key}-${item.status}-${item.visibility || ""}`} lead={lead} gate={gate} item={item} onChange={onChange} />
                     ))}
                   </div>
@@ -176,14 +189,14 @@ export default function StageWorkspace({ lead, onChange }) {
           </>
         )}
 
-        {gate.outputs?.length && (gate.isComplete || (isAdmin && gate.isCurrent)) ? (
+        {!taskMode && gate.outputs?.length && (gate.isComplete || (isAdmin && gate.isCurrent)) ? (
           <div className="gate-outputs">
             <h4>Gate output</h4>
             <ul>{gate.outputs.map((o) => <li key={o}>{o}</li>)}</ul>
           </div>
         ) : null}
 
-        {gate.gateApproval ? (
+        {gate.gateApproval && !taskMode ? (
           <div className="approval-box">
             <div className="approval-box__label">Gate approved</div>
             <div>{gate.gateApproval.approved_by_name} · {gate.gateApproval.approved_at}{gate.gateApproval.comments ? ` — ${gate.gateApproval.comments}` : ""}</div>
@@ -199,7 +212,7 @@ export default function StageWorkspace({ lead, onChange }) {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button type="button" className="btn btn-default btn-sm" onClick={() => setApproveOpen(false)}>Cancel</button>
-                <button type="button" className="btn btn-success btn-sm" disabled={busy} onClick={approveGate}>{busy ? "Approving…" : `Close ${gate.name.split(" — ")[0]}`}</button>
+                <button type="button" className="btn btn-success btn-sm" disabled={busy} onClick={approveGate}>{busy ? "Approving…" : `Close stage`}</button>
               </div>
             </div>
           ) : (

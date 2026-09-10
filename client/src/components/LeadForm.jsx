@@ -112,13 +112,8 @@ export default function LeadForm({ onSubmit, submitLabel = "Create lead", busy }
 
       <aside className="pc-aside">
         <div className="pc-aside__card">
-          <h4>What opens next</h4>
-          <ol>
-            <li><b>Step 1 — CDA</b> · BD (Vinay) + BD Team Head</li>
-            <li><b>Step 2+</b> · Manufacturing / Analytical in sequence</li>
-            <li>Senior Management gate approval before RFP</li>
-          </ol>
-          <p className="text-muted" style={{ fontSize: 12.5, margin: "10px 0 0" }}>Other teams only see their assigned step and the immediate next step — not the full upcoming checklist.</p>
+          <h4>Intake</h4>
+          <p style={{ margin: 0, fontSize: "0.84rem", color: "#475569" }}>Creates an NPI lead and opens Stage 1 for BD to file the CDA.</p>
         </div>
       </aside>
     </div>

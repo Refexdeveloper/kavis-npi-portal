@@ -25,6 +25,9 @@ export function AuthProvider({ children }) {
       loading,
       isAdmin: !!user?.is_admin,
       isTeamHead: !!user?.is_team_head,
+      /** BD (Vinay) + Senior Management see full workflow / funnel / instructions. */
+      canSeeFullWorkflow: !!user && (!!user.is_admin || user.role === "business_development"),
+      canCreateLead: !!user && (!!user.is_admin || user.role === "business_development"),
       role: user?.role || null,
       roleLabel: user?.role_label || "",
       displayName: user?.full_name || user?.username || "User",

@@ -11,7 +11,7 @@ import { GATES } from "../lib/gates.js";
 
 export default function LeadView() {
   const { id } = useParams();
-  const { role, isAdmin } = useAuth();
+  const { role, isAdmin, canSeeFullWorkflow } = useAuth();
   const toast = useToast();
   const [lead, setLead] = useState(null);
   const [history, setHistory] = useState([]);
@@ -153,7 +153,17 @@ export default function LeadView() {
           </div>
         ) : null}
 
-        <WorkflowProgress lead={lead} />
+        {canSeeFullWorkflow ? <WorkflowProgress lead={lead} /> : (
+          <div className="wf-progress wf-progress--task">
+            <div className="wf-progress__head">
+              <div>
+                <p className="wf-progress__eyebrow">Your assignment</p>
+                <h3>{(lead.workflow?.currentGateName || "").replace(/^Stage \d — /, "") || "Current stage"}</h3>
+                <p className="wf-progress__hint">Update only the items assigned to your function. Use <b>Update entry</b> to submit.</p>
+              </div>
+            </div>
+          </div>
+        )}
       </Box>
 
       {isAdmin ? (
@@ -174,10 +184,10 @@ export default function LeadView() {
       ) : null}
 
       <div className="gate-list">
-        <StageWorkspace lead={lead} onChange={onChange} />
+        <StageWorkspace lead={lead} onChange={onChange} taskMode={!canSeeFullWorkflow} />
       </div>
 
-      {role !== "client" ? (
+      {canSeeFullWorkflow && role !== "client" ? (
         <Box
           title="Full audit history"
           tools={<button type="button" className="btn btn-default btn-sm" onClick={() => setShowHistory((v) => !v)}>{showHistory ? "Hide" : `Show ${history.length}`}</button>}
@@ -191,7 +201,7 @@ export default function LeadView() {
                 </li>
               ))}
             </ul>
-          ) : <p className="text-muted" style={{ margin: 0 }}>{history.length} recorded events — every submission, approval, rejection and status change.</p>}
+          ) : <p className="text-muted" style={{ margin: 0 }}>{history.length} recorded events.</p>}
         </Box>
       ) : null}
     </div>
