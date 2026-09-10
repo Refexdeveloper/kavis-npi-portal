@@ -1,0 +1,4 @@
+/* Kavis Pharma NPI Portal — root sizing (design tokens live in refex.css) */
+html, body, #root { height: 100%; }
+body { margin: 0; -webkit-font-smoothing: antialiased; }
+button { cursor: pointer; }

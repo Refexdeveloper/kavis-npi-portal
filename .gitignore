@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+server/.env
+
+# Local data & uploads
+server/data/*.sqlite
+server/data/*.sqlite-*
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Build
+client/out/
+client/dist/
+server/dist/
+*.log
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*~
