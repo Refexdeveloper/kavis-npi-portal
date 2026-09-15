@@ -337,4 +337,22 @@ gcloud auth application-default login
 
 ---
 
-*Last updated for the single Cloud Run + Cloud SQL + dedicated GCS documents architecture.*
+## 11. Live deployment (this project)
+
+| Item | Value |
+|------|--------|
+| GCP project | `master-diorama-489103-u2` |
+| Region | `asia-south1` |
+| Cloud Run | `kavis-npi-portal` |
+| App URL | https://kavis-npi-portal-dhwffeu7pq-el.a.run.app |
+| Cloud SQL instance | `p2p-mysql` (shared) |
+| Database / user | `kavis_npi` / `kavis_app` |
+| Docs bucket | `gs://kavis-npi-docs-master-diorama-489103-u2` |
+| Runtime SA | `kavis-npi-run@master-diorama-489103-u2.iam.gserviceaccount.com` |
+| Image | `asia-south1-docker.pkg.dev/master-diorama-489103-u2/kavis/kavis-npi-portal:latest` |
+| Secrets | `kavis-db-password`, `kavis-jwt-secret` |
+| GitHub | https://github.com/Refexdeveloper/kavis-npi-portal |
+
+Demo login: `bd.vinay` / `Kavis@123`
+
+*Last updated after first successful Cloud Run deploy.*
