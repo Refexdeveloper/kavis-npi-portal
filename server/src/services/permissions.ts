@@ -39,6 +39,7 @@ export function itemOwnerRoles(item: Pick<GateItemDef, 'role' | 'supportRoles'>)
 /** True when the user may act on / fully view this checklist item. */
 export function canAccessItemDetails(user: AuthUser, item: Pick<GateItemDef, 'role' | 'supportRoles'>): boolean {
   if (isAdmin(user)) return true
+  if (Number(user.can_act_all) === 1) return true
   if (user.role === 'client') return item.role === 'client'
   const owners = itemOwnerRoles(item)
   if (owners.includes(user.role)) return true
@@ -48,9 +49,10 @@ export function canAccessItemDetails(user: AuthUser, item: Pick<GateItemDef, 'ro
   return false
 }
 
-/** True when the user may submit this item (owner role, support role, or admin). */
+/** True when the user may submit this item (owner role, support role, all-access operator, or admin). */
 export function canSubmitItem(user: AuthUser, item: Pick<GateItemDef, 'role' | 'supportRoles'>): boolean {
   if (isAdmin(user)) return true
+  if (Number(user.can_act_all) === 1) return true
   return itemOwnerRoles(item).includes(user.role)
 }
 

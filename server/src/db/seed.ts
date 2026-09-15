@@ -5,13 +5,20 @@ import { logHistory } from '../services/history.js'
 import { putObject } from '../services/storage.js'
 import { findGate, findItem, nextGate, type GateKey, type Role } from '../config/stageGates.js'
 
-type SeedUser = { username: string; full_name: string; role: Role; client_company?: string; is_team_head?: boolean }
+type SeedUser = {
+  username: string
+  full_name: string
+  role: Role
+  client_company?: string
+  is_team_head?: boolean
+  can_act_all?: boolean
+}
 
 const DEMO_PASSWORD = 'Kavis@123'
 
 const USERS: SeedUser[] = [
-  // BD: Vinay executes Step 1; Neha is BD Team Head — both get full CDA detail.
-  { username: 'bd.vinay', full_name: 'Vinay Kulkarni', role: 'business_development' },
+  // Vinay: full act-on-any-item access; task-only dashboard (can_act_all).
+  { username: 'bd.vinay', full_name: 'Vinay Kulkarni', role: 'business_development', can_act_all: true },
   { username: 'bd.head', full_name: 'Neha Patil — BD Team Head', role: 'business_development', is_team_head: true },
   { username: 'safety.ananya', full_name: 'Ananya Rao', role: 'safety', is_team_head: true },
   { username: 'mfg.suresh', full_name: 'Suresh Iyer', role: 'manufacturing', is_team_head: true },
@@ -36,19 +43,22 @@ async function ensureUsers(): Promise<Record<string, number>> {
     const existing = await get<{ id: number }>('SELECT id FROM users WHERE username = ?', [u.username])
     if (existing) {
       ids[u.username] = existing.id
-      // Keep team-head flag in sync for existing DBs so ACL demos stay accurate.
-      await run('UPDATE users SET is_team_head = ?, updated_at = ? WHERE id = ?', [u.is_team_head ? 1 : 0, ts, existing.id])
+      // Keep team-head / can_act_all flags in sync for existing DBs so ACL demos stay accurate.
+      await run(
+        'UPDATE users SET is_team_head = ?, can_act_all = ?, updated_at = ? WHERE id = ?',
+        [u.is_team_head ? 1 : 0, u.can_act_all ? 1 : 0, ts, existing.id],
+      )
       continue
     }
     const info = await run(`
-      INSERT INTO users (username, password, full_name, role, client_company, is_admin, is_team_head, activated, must_change_password, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+      INSERT INTO users (username, password, full_name, role, client_company, is_admin, is_team_head, can_act_all, activated, must_change_password, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
     `, [
       u.username, hash, u.full_name, u.role, u.client_company || null,
-      u.role === 'senior_management' ? 1 : 0, u.is_team_head ? 1 : 0, ts, ts,
+      u.role === 'senior_management' ? 1 : 0, u.is_team_head ? 1 : 0, u.can_act_all ? 1 : 0, ts, ts,
     ])
     ids[u.username] = info.insertId
-    console.log(`Created user: ${u.username} (${u.role}${u.is_team_head ? ', team head' : ''})`)
+    console.log(`Created user: ${u.username} (${u.role}${u.is_team_head ? ', team head' : ''}${u.can_act_all ? ', act-all' : ''})`)
   }
   return ids
 }

@@ -5,8 +5,9 @@ import { ROLE_LABELS, type Role } from '../config/stageGates.js'
 export async function transformUser(id: number) {
   const row = await get<Record<string, unknown>>(`
     SELECT id, username, full_name, email, role, client_company, is_admin,
-           COALESCE(is_team_head, 0) as is_team_head, activated,
-           must_change_password, created_at, last_login
+           COALESCE(is_team_head, 0) as is_team_head,
+           COALESCE(can_act_all, 0) as can_act_all,
+           activated, must_change_password, created_at, last_login
     FROM users WHERE id = ? AND deleted_at IS NULL
   `, [id])
   if (!row) return null
@@ -21,6 +22,7 @@ export async function transformUser(id: number) {
     client_company: row.client_company,
     is_admin: isAdmin({ ...row, id: Number(row.id) } as AuthUser),
     is_team_head: !!row.is_team_head,
+    can_act_all: !!row.can_act_all,
     activated: !!row.activated,
     must_change_password: !!row.must_change_password,
     created_at: row.created_at,
@@ -39,6 +41,7 @@ export function publicUser(user: AuthUser) {
     client_company: user.client_company,
     is_admin: isAdmin(user),
     is_team_head: !!user.is_team_head,
+    can_act_all: !!user.can_act_all,
     must_change_password: !!user.must_change_password,
   }
 }

@@ -11,8 +11,9 @@ router.get('/pending', async (req, res) => {
     return okItem(res, { role: 'senior_management', ...(await pendingForSeniorManagement()) })
   }
   const clientCompany = req.user!.role === 'client' ? req.user!.client_company : null
-  const items = await pendingItemsForRole(req.user!.role, clientCompany)
-  return okItem(res, { role: req.user!.role, itemsToAction: items })
+  const canActAll = Number(req.user!.can_act_all) === 1
+  const items = await pendingItemsForRole(req.user!.role, clientCompany, { canActAll })
+  return okItem(res, { role: req.user!.role, canActAll, itemsToAction: items })
 })
 
 router.get('/kpis', async (req, res) => {

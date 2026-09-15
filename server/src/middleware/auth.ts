@@ -13,6 +13,7 @@ export type AuthUser = {
   client_company: string | null
   is_admin: number
   is_team_head: number
+  can_act_all: number
   activated: number
   must_change_password: number
 }
@@ -40,7 +41,9 @@ export async function authRequired(req: Request, res: Response, next: NextFuncti
     const decoded = jwt.verify(header.slice(7), secret()) as unknown as { sub: number }
     const row = await get<AuthUser>(`
       SELECT id, username, full_name, email, role, client_company, is_admin,
-             COALESCE(is_team_head, 0) as is_team_head, activated, must_change_password
+             COALESCE(is_team_head, 0) as is_team_head,
+             COALESCE(can_act_all, 0) as can_act_all,
+             activated, must_change_password
       FROM users WHERE id = ? AND deleted_at IS NULL
     `, [decoded.sub])
 

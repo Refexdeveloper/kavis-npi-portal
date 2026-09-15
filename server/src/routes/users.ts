@@ -35,12 +35,13 @@ router.post('/', requireAdmin, async (req, res) => {
 
   const ts = now()
   const isTeamHead = !!req.body?.is_team_head
+  const canActAll = !!req.body?.can_act_all
   const info = await run(`
-    INSERT INTO users (username, password, full_name, email, role, client_company, is_admin, is_team_head, activated, must_change_password, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+    INSERT INTO users (username, password, full_name, email, role, client_company, is_admin, is_team_head, can_act_all, activated, must_change_password, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
   `, [
     username, bcrypt.hashSync(password, 10), fullName, email, role, clientCompany,
-    role === 'senior_management' ? 1 : 0, isTeamHead ? 1 : 0, ts, ts,
+    role === 'senior_management' ? 1 : 0, isTeamHead ? 1 : 0, canActAll ? 1 : 0, ts, ts,
   ])
   return okItem(res, await transformUser(info.insertId), 201)
 })
@@ -58,6 +59,9 @@ router.patch('/:id', requireAdmin, async (req, res) => {
   }
   if (req.body?.is_team_head !== undefined) {
     fields.push('is_team_head = ?'); params.push(req.body.is_team_head ? 1 : 0)
+  }
+  if (req.body?.can_act_all !== undefined) {
+    fields.push('can_act_all = ?'); params.push(req.body.can_act_all ? 1 : 0)
   }
   if (req.body?.role) {
     if (!ROLE_LIST.includes(req.body.role)) return fail(res, 'Unknown role')

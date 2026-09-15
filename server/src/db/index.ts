@@ -145,6 +145,12 @@ export async function migrate(): Promise<void> {
   const here = dirname(fileURLToPath(import.meta.url))
   const schema = readFileSync(join(here, 'schema.sql'), 'utf8')
   await exec(schema)
+  // Additive columns for existing Cloud SQL databases (CREATE IF NOT EXISTS won't alter)
+  try {
+    await exec('ALTER TABLE users ADD COLUMN can_act_all TINYINT(1) NOT NULL DEFAULT 0')
+  } catch {
+    /* already present */
+  }
   console.log(`[db] MySQL ready → ${dbLabel()}`)
 }
 

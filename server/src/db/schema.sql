@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
   client_company VARCHAR(255) NULL,
   is_admin TINYINT(1) NOT NULL DEFAULT 0,
   is_team_head TINYINT(1) NOT NULL DEFAULT 0,
+  can_act_all TINYINT(1) NOT NULL DEFAULT 0,
   activated TINYINT(1) NOT NULL DEFAULT 1,
   must_change_password TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL,

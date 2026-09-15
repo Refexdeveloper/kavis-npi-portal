@@ -11,7 +11,8 @@ import { GATES } from "../lib/gates.js";
 
 export default function LeadView() {
   const { id } = useParams();
-  const { role, isAdmin, canSeeFullWorkflow } = useAuth();
+  const { role, isAdmin, canSeeFullWorkflow, canCreateLead } = useAuth();
+
   const toast = useToast();
   const [lead, setLead] = useState(null);
   const [history, setHistory] = useState([]);
@@ -40,8 +41,8 @@ export default function LeadView() {
   if (!lead) return <div className="rm-page"><p className="text-muted">Loading…</p></div>;
 
   const meta = leadMeta(lead.status);
-  const canDrop = (role === "business_development" || isAdmin) && lead.status === "active";
-  const canEdit = role === "business_development" || isAdmin;
+  const canDrop = canCreateLead && lead.status === "active";
+  const canEdit = canCreateLead;
 
   async function drop() {
     if (!dropReason.trim()) { toast.error("A reason is required."); return; }

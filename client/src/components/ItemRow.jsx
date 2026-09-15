@@ -8,7 +8,7 @@ import { itemMeta, dueMeta } from "../lib/status.js";
  * Clicking Update / Open launches the premium entry panel.
  */
 export default function ItemRow({ lead, gate, item, onChange }) {
-  const { role, isAdmin, isTeamHead } = useAuth();
+  const { role, isAdmin, isTeamHead, canActAll } = useAuth();
   const [panelOpen, setPanelOpen] = useState(false);
 
   const meta = itemMeta(item.status);
@@ -16,7 +16,7 @@ export default function ItemRow({ lead, gate, item, onChange }) {
   const detailLocked = !!item.detailLocked || item.visibility === "summary" || item.visibility === "hidden";
   const isNextPreview = item.step === gate.currentStep + 1 && !gate.isComplete;
   const ownerMatch = role === item.role || (item.supportRoles || []).includes(role) || (isTeamHead && role === item.role);
-  const canAct = (isAdmin || ownerMatch) && gate.isCurrent && !gate.isLocked && lead.status === "active" && item.step === gate.currentStep && !detailLocked;
+  const canAct = (isAdmin || canActAll || ownerMatch) && gate.isCurrent && !gate.isLocked && lead.status === "active" && item.step === gate.currentStep && !detailLocked;
   const canSubmit = canAct && (item.status === "pending" || item.status === "sent_back");
   const canApprove = isAdmin && item.status === "submitted" && gate.isCurrent && item.step === gate.currentStep && !detailLocked;
 

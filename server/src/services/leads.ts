@@ -471,11 +471,19 @@ async function visibleCurrentStepItems() {
   return out
 }
 
-/** Items assigned to `role` (as owner or support) that are actionable right now. */
-export async function pendingItemsForRole(role: string, clientCompany?: string | null) {
+/** Items actionable for a role — or every open current-step item when canActAll. */
+export async function pendingItemsForRole(
+  role: string,
+  clientCompany?: string | null,
+  opts?: { canActAll?: boolean },
+) {
   const visible = await visibleCurrentStepItems()
   return visible
-    .filter(({ def }) => def.role === role || (def.supportRoles || []).includes(role as any))
+    .filter(({ def }) =>
+      opts?.canActAll
+        ? true
+        : def.role === role || (def.supportRoles || []).includes(role as any),
+    )
     .filter(({ row }) => row.status === 'pending' || row.status === 'sent_back')
     .filter(({ lead }) => !clientCompany || lead.client_name === clientCompany)
     .map(({ lead, row, def }) => ({
@@ -492,6 +500,7 @@ export async function pendingItemsForRole(role: string, clientCompany?: string |
       tatDays: def.tatDays ?? null,
       step: def.step,
       isSupport: def.role !== role,
+      owningRole: def.role,
     }))
 }
 

@@ -7,12 +7,12 @@ import { Box } from "../components/ui.jsx";
 import LeadForm from "../components/LeadForm.jsx";
 
 export default function AddLead() {
-  const { role, isAdmin } = useAuth();
+  const { canCreateLead } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
 
-  const allowed = role === "business_development" || isAdmin;
+  const allowed = canCreateLead;
 
   async function create(form) {
     setBusy(true);
