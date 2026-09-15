@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { all, get, run, now } from '../db/index.js'
 import { fail, okItem } from '../utils/response.js'
-import { isAdmin, requireAdmin } from '../middleware/auth.js'
+import { requirePipelineOperator } from '../middleware/auth.js'
 import { upload, makeStoredFilename } from '../middleware/upload.js'
 import { putObject } from '../services/storage.js'
 import { findGate, findItem, GATE_LABELS } from '../config/stageGates.js'
@@ -70,7 +70,7 @@ router.post('/:id/gates/:gate/items/:key/submit', upload.single('file'), async (
   return okItem(res, await getLeadFullForUser(leadId, req.user!))
 })
 
-router.post('/:id/gates/:gate/items/:key/approve', requireAdmin, async (req, res) => {
+router.post('/:id/gates/:gate/items/:key/approve', requirePipelineOperator, async (req, res) => {
   const leadId = Number(req.params.id)
   const gate = String(req.params.gate)
   const key = String(req.params.key)

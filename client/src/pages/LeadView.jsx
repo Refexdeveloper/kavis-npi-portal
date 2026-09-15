@@ -11,7 +11,7 @@ import { GATES } from "../lib/gates.js";
 
 export default function LeadView() {
   const { id } = useParams();
-  const { role, isAdmin, canSeeFullWorkflow, canCreateLead } = useAuth();
+  const { role, canSeeFullWorkflow, canCreateLead, canOperatePipeline } = useAuth();
 
   const toast = useToast();
   const [lead, setLead] = useState(null);
@@ -123,7 +123,7 @@ export default function LeadView() {
             <span className={`label label-${meta.labelTone}`} style={{ fontSize: 12, padding: "5px 12px" }}>{meta.label}</span>
             {canEdit && !editOpen ? <button type="button" className="btn btn-default btn-sm" onClick={startEdit}>Edit details</button> : null}
             {canDrop ? <button type="button" className="btn btn-danger btn-sm" onClick={() => setDropOpen((v) => !v)}>Drop lead</button> : null}
-            {isAdmin ? <button type="button" className="btn btn-warning btn-sm" onClick={() => (lead.status === "on_hold" ? toggleHold() : setHoldOpen((v) => !v))}>{lead.status === "on_hold" ? "Resume" : "Put on hold"}</button> : null}
+            {canOperatePipeline ? <button type="button" className="btn btn-warning btn-sm" onClick={() => (lead.status === "on_hold" ? toggleHold() : setHoldOpen((v) => !v))}>{lead.status === "on_hold" ? "Resume" : "Put on hold"}</button> : null}
           </div>
         </div>
 
@@ -167,8 +167,8 @@ export default function LeadView() {
         )}
       </Box>
 
-      {isAdmin ? (
-        <Box title="Senior Management controls">
+      {canOperatePipeline ? (
+        <Box title="Pipeline controls">
           <div style={{ display: "flex", alignItems: "flex-end", gap: 20, flexWrap: "wrap" }}>
             <Field label="Move lead to gate">
               <div style={{ display: "flex", gap: 8 }}>

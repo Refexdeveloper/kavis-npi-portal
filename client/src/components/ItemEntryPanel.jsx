@@ -11,7 +11,7 @@ import { itemMeta, dueMeta } from "../lib/status.js";
  * Opens as a slide-over — never inline inside the stage list.
  */
 export default function ItemEntryPanel({ lead, gate, item, onClose, onChange }) {
-  const { displayName, isAdmin } = useAuth();
+  const { displayName, canOperatePipeline } = useAuth();
   const toast = useToast();
   const [file, setFile] = useState(null);
   const [remarks, setRemarks] = useState(item.remarks || "");
@@ -27,8 +27,8 @@ export default function ItemEntryPanel({ lead, gate, item, onClose, onChange }) 
   const docRequired = !!item.docRequired || !!item.docRequiredActual;
   const canSubmit = !detailLocked && gate.isCurrent && lead.status === "active" && item.step === gate.currentStep
     && (item.status === "pending" || item.status === "sent_back") && (item.canSubmit !== false);
-  const canApprove = isAdmin && !detailLocked && item.status === "submitted" && gate.isCurrent && item.step === gate.currentStep;
-  const canReject = isAdmin && !detailLocked && (item.status === "submitted" || item.status === "approved");
+  const canApprove = canOperatePipeline && !detailLocked && item.status === "submitted" && gate.isCurrent && item.step === gate.currentStep;
+  const canReject = canOperatePipeline && !detailLocked && (item.status === "submitted" || item.status === "approved");
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape" && !rejectOpen) onClose(); };

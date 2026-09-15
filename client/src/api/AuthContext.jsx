@@ -14,6 +14,7 @@ function capsFromUser(user) {
       isAdmin: false,
       isTeamHead: false,
       canActAll: false,
+      canOperatePipeline: false,
       canSeeFullWorkflow: false,
       canCreateLead: false,
     };
@@ -25,9 +26,10 @@ function capsFromUser(user) {
     isAdmin,
     isTeamHead: !!user.is_team_head,
     canActAll,
-    // Full funnel / command UI: Senior Management, or BD without act-all (e.g. BD Team Head).
-    // Vinay (can_act_all) gets task-only dashboard while still able to update any item.
-    canSeeFullWorkflow: isAdmin || (isBd && !canActAll),
+    // Approve items/gates, hold/reject, close stages to completion (Vinay + SM)
+    canOperatePipeline: isAdmin || canActAll,
+    // Full BD / SM dashboard & funnel (Vinay included — no task-only mode)
+    canSeeFullWorkflow: isAdmin || isBd,
     canCreateLead: isAdmin || isBd,
   };
 }

@@ -16,7 +16,7 @@ function stepGroups(items) {
 }
 
 export default function GateGroup({ lead, gate, defaultOpen, onChange }) {
-  const { role, isAdmin } = useAuth();
+  const { role, isAdmin, canOperatePipeline } = useAuth();
   const toast = useToast();
   const [open, setOpen] = useState(defaultOpen);
   const [approveOpen, setApproveOpen] = useState(false);
@@ -25,8 +25,8 @@ export default function GateGroup({ lead, gate, defaultOpen, onChange }) {
   const [busy, setBusy] = useState(false);
 
   const pct = gate.itemCount ? Math.round((gate.approvedCount / gate.itemCount) * 100) : 0;
-  const canGateApprove = isAdmin && gate.isCurrent && gate.allMandatoryApproved && lead.status === "active";
-  const canReject = isAdmin && lead.status === "active" && (gate.isCurrent || gate.isComplete);
+  const canGateApprove = canOperatePipeline && gate.isCurrent && gate.allMandatoryApproved && lead.status === "active";
+  const canReject = canOperatePipeline && lead.status === "active" && (gate.isCurrent || gate.isComplete);
 
   let stateLabel = "Pending";
   let stateTone = "default";
@@ -100,7 +100,7 @@ export default function GateGroup({ lead, gate, defaultOpen, onChange }) {
             })
           )}
 
-          {gate.outputs?.length && (gate.isComplete || isAdmin || gate.isCurrent) ? (
+          {gate.outputs?.length && (gate.isComplete || canOperatePipeline || gate.isCurrent) ? (
             <div className="gate-outputs">
               <h4>Gate output (auto-summarised once approved)</h4>
               <ul>{gate.outputs.map((o) => <li key={o}>{o}</li>)}</ul>

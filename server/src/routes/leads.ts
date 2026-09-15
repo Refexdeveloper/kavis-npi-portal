@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { get, run, now } from '../db/index.js'
 import { fail, okItem, okList, okMessage } from '../utils/response.js'
-import { requireAdmin, requireRole } from '../middleware/auth.js'
+import { requirePipelineOperator, requireRole } from '../middleware/auth.js'
 import { logHistory } from '../services/history.js'
 import { findGate, nextGate, GATE_ORDER, GATE_LABELS, type GateKey } from '../config/stageGates.js'
 import {
@@ -63,7 +63,7 @@ router.patch('/:id', requireRole('business_development'), async (req, res) => {
   return okItem(res, await getLeadFullForUser(lead.id, req.user!))
 })
 
-router.post('/:id/hold', requireAdmin, async (req, res) => {
+router.post('/:id/hold', requirePipelineOperator, async (req, res) => {
   const lead = await getLead(Number(req.params.id))
   if (!lead) return fail(res, 'Not found', 404)
   if (lead.status !== 'active') return fail(res, `Lead is currently ${lead.status}, not active`)
@@ -73,7 +73,7 @@ router.post('/:id/hold', requireAdmin, async (req, res) => {
   return okItem(res, await getLeadFullForUser(lead.id, req.user!))
 })
 
-router.post('/:id/resume', requireAdmin, async (req, res) => {
+router.post('/:id/resume', requirePipelineOperator, async (req, res) => {
   const lead = await getLead(Number(req.params.id))
   if (!lead) return fail(res, 'Not found', 404)
   if (lead.status !== 'on_hold') return fail(res, 'Lead is not on hold')
@@ -93,7 +93,7 @@ router.post('/:id/drop', requireRole('business_development'), async (req, res) =
   return okItem(res, await getLeadFullForUser(lead.id, req.user!))
 })
 
-router.post('/:id/move', requireAdmin, async (req, res) => {
+router.post('/:id/move', requirePipelineOperator, async (req, res) => {
   const lead = await getLead(Number(req.params.id))
   if (!lead) return fail(res, 'Not found', 404)
   const gate = String(req.body?.gate || '')
@@ -105,7 +105,7 @@ router.post('/:id/move', requireAdmin, async (req, res) => {
   return okItem(res, await getLeadFullForUser(lead.id, req.user!))
 })
 
-router.post('/:id/gates/:gate/approve', requireAdmin, async (req, res) => {
+router.post('/:id/gates/:gate/approve', requirePipelineOperator, async (req, res) => {
   const lead = await getLead(Number(req.params.id))
   if (!lead) return fail(res, 'Not found', 404)
   const gate = String(req.params.gate)
@@ -145,7 +145,7 @@ router.post('/:id/gates/:gate/approve', requireAdmin, async (req, res) => {
 // items reopened for resubmission — nothing is deleted, it's all preserved
 // in lead_documents/history exactly like a single-item send-back, just
 // applied across every gate in the revised range in one governed action.
-router.post('/:id/reject', requireAdmin, async (req, res) => {
+router.post('/:id/reject', requirePipelineOperator, async (req, res) => {
   const lead = await getLead(Number(req.params.id))
   if (!lead) return fail(res, 'Not found', 404)
   if (lead.status === 'dropped') return fail(res, 'This lead is already dropped')

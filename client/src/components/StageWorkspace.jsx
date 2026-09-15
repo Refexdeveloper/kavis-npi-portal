@@ -22,7 +22,7 @@ function stepGroups(items) {
  * - Past steps collapsed; locked future stages not expanded
  */
 export default function StageWorkspace({ lead, onChange, taskMode = false }) {
-  const { role, isAdmin } = useAuth();
+  const { role, isAdmin, canOperatePipeline } = useAuth();
   const toast = useToast();
   const [layer, setLayer] = useState(() => lead.gates.find((g) => g.isCurrent)?.key || lead.gates[0]?.key);
   const [approveOpen, setApproveOpen] = useState(false);
@@ -39,8 +39,8 @@ export default function StageWorkspace({ lead, onChange, taskMode = false }) {
   if (!gate) return null;
 
   const pct = gate.itemCount ? Math.round((gate.approvedCount / gate.itemCount) * 100) : 0;
-  const canGateApprove = isAdmin && gate.isCurrent && gate.allMandatoryApproved && lead.status === "active";
-  const canReject = isAdmin && lead.status === "active" && (gate.isCurrent || gate.isComplete);
+  const canGateApprove = canOperatePipeline && gate.isCurrent && gate.allMandatoryApproved && lead.status === "active";
+  const canReject = canOperatePipeline && lead.status === "active" && (gate.isCurrent || gate.isComplete);
   const groups = stepGroups(gate.items || []);
   const actionable = taskMode
     ? groups.filter((g) => g.step === gate.currentStep || g.step === gate.currentStep + 1)
@@ -189,7 +189,7 @@ export default function StageWorkspace({ lead, onChange, taskMode = false }) {
           </>
         )}
 
-        {!taskMode && gate.outputs?.length && (gate.isComplete || (isAdmin && gate.isCurrent)) ? (
+        {!taskMode && gate.outputs?.length && (gate.isComplete || (canOperatePipeline && gate.isCurrent)) ? (
           <div className="gate-outputs">
             <h4>Gate output</h4>
             <ul>{gate.outputs.map((o) => <li key={o}>{o}</li>)}</ul>

@@ -18,7 +18,7 @@ export default function ItemRow({ lead, gate, item, onChange }) {
   const ownerMatch = role === item.role || (item.supportRoles || []).includes(role) || (isTeamHead && role === item.role);
   const canAct = (isAdmin || canActAll || ownerMatch) && gate.isCurrent && !gate.isLocked && lead.status === "active" && item.step === gate.currentStep && !detailLocked;
   const canSubmit = canAct && (item.status === "pending" || item.status === "sent_back");
-  const canApprove = isAdmin && item.status === "submitted" && gate.isCurrent && item.step === gate.currentStep && !detailLocked;
+  const canApprove = (isAdmin || canActAll) && item.status === "submitted" && gate.isCurrent && item.step === gate.currentStep && !detailLocked;
 
   let cta = "Open";
   let ctaClass = "btn btn-default btn-sm";
