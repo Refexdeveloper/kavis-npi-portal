@@ -101,7 +101,7 @@ API scenarios on running server (`localhost:4300`):
 
 ## 7. Remaining issues / dependencies
 
-1. **Existing DB leads** were not reseeded (7 leads already present). New ACL applies immediately; only new user `bd.head` was added. To rebuild demo pipeline from scratch, delete `server/data/kavis_npi.sqlite` and re-run migrate/seed.
+1. **Existing DB leads** were not reseeded (7 leads already present). New ACL applies immediately; only new user `bd.head` was added. To rebuild demo pipeline from scratch, drop/recreate the MySQL database `kavis_npi` and re-run `npm run migrate && npm run seed` in `server/`.
 2. **Charter fields** (batch size, API vendor) are stored in history notes on create, not as first-class lead columns — enough for BD handoff; promote to columns if reporting needs them.
 3. **Vite client** may need a refresh/restart if it was already running so `WorkflowProgress` / form changes load.
 4. **Server must be restarted** after pull (done in this session on `:4300`). Production/deploy should run `npm run migrate` then restart the API process.

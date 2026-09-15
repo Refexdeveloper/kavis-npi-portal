@@ -1,0 +1,18 @@
+{
+  "name": "kavis-npi-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kavis Pharma NPI Portal — single-service app (Vite SPA + Express API)",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "build": "npm --prefix client run build && npm --prefix server run build",
+    "start": "npm --prefix server start",
+    "dev": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "migrate": "npm --prefix server run migrate",
+    "seed": "npm --prefix server run seed",
+    "install:all": "npm --prefix client ci && npm --prefix server ci"
+  }
+}

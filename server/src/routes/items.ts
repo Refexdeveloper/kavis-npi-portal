@@ -2,7 +2,8 @@ import { Router } from 'express'
 import { all, get, run, now } from '../db/index.js'
 import { fail, okItem } from '../utils/response.js'
 import { isAdmin, requireAdmin } from '../middleware/auth.js'
-import { upload } from '../middleware/upload.js'
+import { upload, makeStoredFilename } from '../middleware/upload.js'
+import { putObject } from '../services/storage.js'
 import { findGate, findItem, GATE_LABELS } from '../config/stageGates.js'
 import { logHistory } from '../services/history.js'
 import { getLead, getLeadFullForUser, getLeadItems, nextVersionForItem, canViewLead, currentStepInGate, activateReachedStep } from '../services/leads.js'
@@ -57,10 +58,12 @@ router.post('/:id/gates/:gate/items/:key/submit', upload.single('file'), async (
 
   if (file) {
     const version = await nextVersionForItem(Number(row.id))
+    const storedFilename = makeStoredFilename(file.originalname)
+    await putObject(storedFilename, file.buffer, file.mimetype)
     await run(`
       INSERT INTO lead_documents (lead_item_id, version, original_filename, stored_filename, mime_type, size_bytes, uploaded_by, uploaded_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [row.id, version, file.originalname, file.filename, file.mimetype, file.size, req.user!.id, ts])
+    `, [row.id, version, file.originalname, storedFilename, file.mimetype, file.size, req.user!.id, ts])
   }
 
   await logHistory(leadId, req.user!, 'Submitted', `"${itemDef.label}" (${GATE_LABELS[gate as keyof typeof GATE_LABELS]}) submitted by ${req.user!.full_name}.${file ? ` Document attached: ${file.originalname}.` : ''}`)

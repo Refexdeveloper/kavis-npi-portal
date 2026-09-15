@@ -1,22 +1,23 @@
 import multer from 'multer'
-import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
-import { fileURLToPath } from 'node:url'
+import { ensureLocalUploadDir, UPLOAD_DIR } from '../services/storage.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-export const UPLOAD_DIR = path.resolve(__dirname, '../../uploads')
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+ensureLocalUploadDir()
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).slice(0, 20)
-    cb(null, `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`)
-  },
-})
+/** Re-export for callers that still import UPLOAD_DIR from this module. */
+export { UPLOAD_DIR }
 
+export function makeStoredFilename(originalname: string): string {
+  const ext = path.extname(originalname).slice(0, 20)
+  return `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`
+}
+
+/**
+ * Memory storage so the same route can write to local disk or GCS
+ * via services/storage.ts (Cloud Run has ephemeral disk).
+ */
 export const upload = multer({
-  storage,
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB — CDMO documents (protocols, MSDS bundles) can run large
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB — CDMO documents can run large
 })

@@ -14,9 +14,11 @@ import leadsRouter from './routes/leads.js'
 import itemsRouter from './routes/items.js'
 import documentsRouter from './routes/documents.js'
 import dashboardRouter from './routes/dashboard.js'
+import { storageBackend } from './services/storage.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const clientOutPath = path.resolve(__dirname, '../../client/out')
+/** Vite build output (client/vite.config.js → outDir: "out") */
+const CLIENT_OUT = path.resolve(__dirname, '../../client/out')
 
 export function createApp() {
   const app = express()
@@ -58,13 +60,16 @@ export function createApp() {
   app.use(express.urlencoded({ extended: false }))
   app.use(process.env.NODE_ENV === 'production' ? morgan('combined') : morgan('dev'))
 
+  const servingFrontend = fs.existsSync(path.join(CLIENT_OUT, 'index.html'))
+
   app.get('/api/v1/status', (_req, res) => {
     res.json({
       status: 'ok',
       product: 'Kavis Pharma NPI Portal',
       version: '1.0.0',
-      serve_client: process.env.SERVE_CLIENT === 'true',
-      database: 'sqlite',
+      serve_client: servingFrontend,
+      database: 'mysql',
+      storage: storageBackend(),
     })
   })
 
@@ -79,10 +84,9 @@ export function createApp() {
   api.use('/leads', itemsRouter) // adds nested /leads/:id/gates/... item actions + /leads/:id/history
   app.use('/api/v1', api)
 
-  const shouldServeClient = process.env.SERVE_CLIENT === 'true'
-  if (shouldServeClient && fs.existsSync(clientOutPath)) {
-    console.log('Serving production client from:', clientOutPath)
-    app.use(express.static(clientOutPath, {
+  if (servingFrontend) {
+    app.use(express.static(CLIENT_OUT, {
+      index: 'index.html',
       maxAge: '1y',
       etag: true,
       lastModified: true,
@@ -96,14 +100,14 @@ export function createApp() {
         }
       },
     }))
-    app.use((req, res, next) => {
-      if (req.method !== 'GET' && req.method !== 'HEAD') return next()
-      if ((req.path || '').startsWith('/api')) return next()
-      return res.sendFile(path.join(clientOutPath, 'index.html'))
+    // SPA fallback — BrowserRouter deep links (skip API)
+    app.get(/.*/, (req, res, next) => {
+      if (req.path.startsWith('/api')) return next()
+      return res.sendFile(path.join(CLIENT_OUT, 'index.html'))
     })
-  } else if (shouldServeClient) {
-    console.warn('SERVE_CLIENT=true but client/out not found — run: cd client && npm run build')
+    console.log(`Serving frontend from ${CLIENT_OUT}`)
   } else {
+    console.warn(`Frontend build not found at ${CLIENT_OUT} — run: npm run build --prefix client`)
     app.get('/', (req, res) => {
       const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http'
       const host = req.get('host')
@@ -111,7 +115,7 @@ export function createApp() {
         message: 'Kavis Pharma NPI Portal API is running',
         mode: process.env.NODE_ENV || 'development',
         apiUrl: `${protocol}://${host}/api/v1`,
-        note: 'Set SERVE_CLIENT=true and build client/out to serve the UI from this process, or run the client dev server separately.',
+        note: 'Build the client (npm run build) so this process can serve the UI on the same origin.',
       })
     })
   }

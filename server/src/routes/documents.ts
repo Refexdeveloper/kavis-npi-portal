@@ -1,18 +1,15 @@
 import { Router } from 'express'
-import path from 'node:path'
 import { get } from '../db/index.js'
 import { fail } from '../utils/response.js'
-import { UPLOAD_DIR } from '../middleware/upload.js'
+import { getObjectStream } from '../services/storage.js'
 import { getLead, canViewLead } from '../services/leads.js'
 import { findItem } from '../config/stageGates.js'
 import { canDownloadItemDocs } from '../services/permissions.js'
 
 const router = Router()
 
-// Protected file download — never served as plain static files, since these
-// are confidential CDMO documents (specs, agreements, MSDS, DMF references).
-// Only the owning team (incl. support roles / team head) and Senior Management
-// may download; other functions that can open the lead still cannot pull files.
+// Protected file download — never public URLs. Confidential CDMO documents
+// (specs, agreements, MSDS, DMF references) stream through the API after ACL.
 router.get('/:docId/download', async (req, res) => {
   const doc = await get<Record<string, unknown>>(`
     SELECT ld.*, li.lead_id, li.item_key, li.gate
@@ -30,8 +27,22 @@ router.get('/:docId/download', async (req, res) => {
     return fail(res, 'Forbidden: document access is limited to the assigned team and Senior Management', 403)
   }
 
-  const filePath = path.join(UPLOAD_DIR, String(doc.stored_filename))
-  return res.download(filePath, String(doc.original_filename))
+  try {
+    const { stream, contentType, size } = await getObjectStream(String(doc.stored_filename))
+    const original = String(doc.original_filename)
+    res.setHeader('Content-Type', contentType || String(doc.mime_type || 'application/octet-stream'))
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(original)}`)
+    if (size != null) res.setHeader('Content-Length', String(size))
+    stream.on('error', (err) => {
+      console.error('[documents] stream error', err)
+      if (!res.headersSent) fail(res, 'Download failed', 500)
+      else res.end()
+    })
+    stream.pipe(res)
+  } catch (err) {
+    console.error(err)
+    return fail(res, 'File not found in storage', 404)
+  }
 })
 
 export default router
