@@ -345,14 +345,18 @@ gcloud auth application-default login
 | Region | `asia-south1` |
 | Cloud Run | `kavis-npi-portal` |
 | App URL | https://kavis-npi-portal-dhwffeu7pq-el.a.run.app |
-| Cloud SQL instance | `p2p-mysql` (shared) |
+| Cloud SQL instance | **`kavis-npi-mysql`** (dedicated — not shared with P2P) |
+| Connection name | `master-diorama-489103-u2:asia-south1:kavis-npi-mysql` |
 | Database / user | `kavis_npi` / `kavis_app` |
 | Docs bucket | `gs://kavis-npi-docs-master-diorama-489103-u2` |
+| Archive bucket | `gs://kavis-npi-archive-master-diorama-489103-u2` |
 | Runtime SA | `kavis-npi-run@master-diorama-489103-u2.iam.gserviceaccount.com` |
 | Image | `asia-south1-docker.pkg.dev/master-diorama-489103-u2/kavis/kavis-npi-portal:latest` |
 | Secrets | `kavis-db-password`, `kavis-jwt-secret` |
 | GitHub | https://github.com/Refexdeveloper/kavis-npi-portal |
 
+**Isolation check:** Cloud Run is attached only to `kavis-npi-mysql`. The shared `p2p-mysql` instance no longer has a `kavis_npi` database.
+
 Demo login: `bd.vinay` / `Kavis@123`
 
-*Last updated after first successful Cloud Run deploy.*
+*Last updated after migrating to a dedicated Cloud SQL instance and Kavis-only GCS buckets.*
