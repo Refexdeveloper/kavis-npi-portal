@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { api, downloadDocument } from "../api/client.js";
+import { api } from "../api/client.js";
 import { useAuth } from "../api/AuthContext.jsx";
 import { useToast } from "./Toast.jsx";
 import RejectModal from "./RejectModal.jsx";
+import DocumentPreview from "./DocumentPreview.jsx";
 import { itemMeta, dueMeta } from "../lib/status.js";
 
 /**
@@ -13,25 +14,29 @@ import { itemMeta, dueMeta } from "../lib/status.js";
 export default function ItemEntryPanel({ lead, gate, item, onClose, onChange }) {
   const { displayName, canOperatePipeline } = useAuth();
   const toast = useToast();
+  const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [remarks, setRemarks] = useState(item.remarks || "");
   const [comments, setComments] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  // null = not chosen yet; true = Yes (show upload); false = No
+  const brdRequiresDoc = !!item.docRequired || !!item.docRequiredActual;
+  const [attachDoc, setAttachDoc] = useState(brdRequiresDoc ? true : null);
 
   const meta = itemMeta(item.status);
   const due = dueMeta(item);
   const detailLocked = !!item.detailLocked || item.visibility === "summary" || item.visibility === "hidden";
   const isNextPreview = item.step === gate.currentStep + 1 && !gate.isComplete;
-  const docRequired = !!item.docRequired || !!item.docRequiredActual;
   const canSubmit = !detailLocked && gate.isCurrent && lead.status === "active" && item.step === gate.currentStep
     && (item.status === "pending" || item.status === "sent_back") && (item.canSubmit !== false);
   const canApprove = canOperatePipeline && !detailLocked && item.status === "submitted" && gate.isCurrent && item.step === gate.currentStep;
   const canReject = canOperatePipeline && !detailLocked && (item.status === "submitted" || item.status === "approved");
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape" && !rejectOpen) onClose(); };
+    const onKey = (e) => { if (e.key === "Escape" && !rejectOpen && !previewDoc) onClose(); };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -39,21 +44,46 @@ export default function ItemEntryPanel({ lead, gate, item, onClose, onChange }) 
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [onClose, rejectOpen]);
+  }, [onClose, rejectOpen, previewDoc]);
+
+  function chooseAttach(yes) {
+    setAttachDoc(yes);
+    if (!yes) {
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    // Open the file picker only when user chooses Yes
+    requestAnimationFrame(() => fileInputRef.current?.click());
+  }
 
   function pickFile(f) {
-    if (f) setFile(f);
+    if (f) {
+      setFile(f);
+      setAttachDoc(true);
+    }
   }
 
   async function submit(e) {
     e.preventDefault();
-    if (docRequired && !file) { toast.error("Attach a document — this item requires one."); return; }
+    if (attachDoc === null) {
+      toast.error("Choose Yes or No for document attachment.");
+      return;
+    }
+    if (brdRequiresDoc && !attachDoc) {
+      toast.error("This checklist item requires a document (BRD). Choose Yes and attach a file.");
+      return;
+    }
+    if (attachDoc && !file) {
+      toast.error("Choose Yes opened the file window — please select a document, or choose No.");
+      return;
+    }
     setBusy(true);
     try {
       const form = new FormData();
       form.append("remarks", remarks);
-      form.append("docRequired", String(docRequired));
-      if (file) form.append("file", file);
+      form.append("docRequired", String(brdRequiresDoc || attachDoc));
+      if (attachDoc && file) form.append("file", file);
       const updated = await api.submitItem(lead.id, gate.key, item.key, form);
       toast.success(`"${item.label}" submitted`);
       onChange(updated);
@@ -141,11 +171,18 @@ export default function ItemEntryPanel({ lead, gate, item, onClose, onChange }) 
                   <span className="entry-card__label">Attached documents</span>
                   <div className="doc-list">
                     {item.documents.map((d) => (
-                      <button key={d.id} type="button" className="doc-chip" onClick={() => downloadDocument(d.id, d.originalFilename)}>
-                        <i className="fas fa-file-arrow-down" /> {d.originalFilename} <span>v{d.version}</span>
+                      <button
+                        key={d.id}
+                        type="button"
+                        className="doc-chip"
+                        onClick={() => setPreviewDoc(d)}
+                        title="Preview document"
+                      >
+                        <i className="fas fa-eye" /> {d.originalFilename} <span>v{d.version}</span>
                       </button>
                     ))}
                   </div>
+                  <p className="field-hint" style={{ marginTop: 8 }}>Click a file to preview. Download is available from the preview.</p>
                 </div>
               ) : null}
 
@@ -154,7 +191,7 @@ export default function ItemEntryPanel({ lead, gate, item, onClose, onChange }) 
                   <div className="entry-card entry-card--form">
                     <span className="entry-card__label">Department entry form</span>
                     <div className="rm-field">
-                      <label>Remarks / notes{!docRequired ? " (recommended)" : ""}</label>
+                      <label>Remarks / notes</label>
                       <textarea
                         className="form-control entry-textarea"
                         rows={5}
@@ -163,36 +200,77 @@ export default function ItemEntryPanel({ lead, gate, item, onClose, onChange }) 
                         placeholder={`Capture findings from ${displayName}…`}
                       />
                     </div>
+
                     <div className="rm-field">
-                      <label>Document upload{docRequired ? " · required" : " · optional"}</label>
-                      <div
-                        className={`entry-drop${dragOver ? " is-over" : ""}${file ? " has-file" : ""}`}
-                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                        onDragLeave={() => setDragOver(false)}
-                        onDrop={(e) => { e.preventDefault(); setDragOver(false); pickFile(e.dataTransfer.files?.[0]); }}
-                      >
-                        {file ? (
-                          <div className="entry-drop__file">
-                            <i className="fas fa-file-circle-check" />
-                            <div>
-                              <b>{file.name}</b>
-                              <span>{Math.round(file.size / 1024)} KB</span>
-                            </div>
-                            <button type="button" className="btn btn-default btn-xs" onClick={() => setFile(null)}>Remove</button>
-                          </div>
-                        ) : (
-                          <>
-                            <i className="fas fa-cloud-arrow-up" />
-                            <b>Drop file here or browse</b>
-                            <span>PDF, Word, Excel, images · max 25 MB</span>
-                            <label className="btn btn-default btn-sm entry-browse">
-                              Choose file
-                              <input type="file" hidden onChange={(e) => pickFile(e.target.files?.[0] || null)} />
-                            </label>
-                          </>
-                        )}
+                      <label>
+                        Do you need to attach a document?
+                        {brdRequiresDoc ? " · required by BRD" : ""}
+                      </label>
+                      <div className="doc-yesno" role="group" aria-label="Attach document">
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${attachDoc === true ? "btn-theme" : "btn-default"}`}
+                          onClick={() => chooseAttach(true)}
+                        >
+                          Yes
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${attachDoc === false ? "btn-theme" : "btn-default"}`}
+                          onClick={() => chooseAttach(false)}
+                          disabled={brdRequiresDoc}
+                          title={brdRequiresDoc ? "This item requires a document" : undefined}
+                        >
+                          No
+                        </button>
                       </div>
-                      {docRequired ? <span className="field-hint">BRD marks this checklist item as document-mandatory.</span> : null}
+                      {brdRequiresDoc ? (
+                        <span className="field-hint">BRD marks this checklist item as document-mandatory — choose Yes and attach a file.</span>
+                      ) : attachDoc === false ? (
+                        <span className="field-hint">No document will be uploaded with this entry.</span>
+                      ) : attachDoc === null ? (
+                        <span className="field-hint">Select Yes to open the file picker, or No to continue without a file.</span>
+                      ) : null}
+
+                      {/* Hidden input — opened programmatically when user chooses Yes */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        hidden
+                        onChange={(e) => pickFile(e.target.files?.[0] || null)}
+                      />
+
+                      {attachDoc === true ? (
+                        <div
+                          className={`entry-drop${dragOver ? " is-over" : ""}${file ? " has-file" : ""}`}
+                          style={{ marginTop: 12 }}
+                          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                          onDragLeave={() => setDragOver(false)}
+                          onDrop={(e) => { e.preventDefault(); setDragOver(false); pickFile(e.dataTransfer.files?.[0]); }}
+                        >
+                          {file ? (
+                            <div className="entry-drop__file">
+                              <i className="fas fa-file-circle-check" />
+                              <div>
+                                <b>{file.name}</b>
+                                <span>{Math.round(file.size / 1024)} KB</span>
+                              </div>
+                              <button type="button" className="btn btn-default btn-xs" onClick={() => { setFile(null); fileInputRef.current?.click(); }}>
+                                Change
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <i className="fas fa-cloud-arrow-up" />
+                              <b>Select or drop a file</b>
+                              <span>PDF, Word, Excel, images · max 25 MB</span>
+                              <button type="button" className="btn btn-default btn-sm" onClick={() => fileInputRef.current?.click()}>
+                                Choose file
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   <div className="entry-panel__actions">
@@ -244,6 +322,10 @@ export default function ItemEntryPanel({ lead, gate, item, onClose, onChange }) 
           onClose={() => setRejectOpen(false)}
           onDone={(updated) => { onChange(updated); onClose(); }}
         />
+      ) : null}
+
+      {previewDoc ? (
+        <DocumentPreview doc={previewDoc} onClose={() => setPreviewDoc(null)} />
       ) : null}
     </div>,
     document.body,

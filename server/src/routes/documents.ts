@@ -30,9 +30,13 @@ router.get('/:docId/download', async (req, res) => {
   try {
     const { stream, contentType, size } = await getObjectStream(String(doc.stored_filename))
     const original = String(doc.original_filename)
+    const inline = String(req.query.inline || '') === '1'
     res.setHeader('Content-Type', contentType || String(doc.mime_type || 'application/octet-stream'))
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(original)}`)
+    const disposition = inline ? 'inline' : 'attachment'
+    res.setHeader('Content-Disposition', `${disposition}; filename*=UTF-8''${encodeURIComponent(original)}`)
     if (size != null) res.setHeader('Content-Length', String(size))
+    // Allow same-origin iframe/object preview of PDFs
+    res.setHeader('X-Content-Type-Options', 'nosniff')
     stream.on('error', (err) => {
       console.error('[documents] stream error', err)
       if (!res.headersSent) fail(res, 'Download failed', 500)

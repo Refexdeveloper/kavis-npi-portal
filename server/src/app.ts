@@ -36,6 +36,9 @@ export function createApp() {
         'img-src': ["'self'", 'data:', 'blob:', 'https:'],
         'script-src': ["'self'", "'unsafe-inline'"],
         'connect-src': ["'self'", 'http:', 'https:'],
+        'frame-src': ["'self'", 'blob:'],
+        'object-src': ["'self'", 'blob:'],
+        'worker-src': ["'self'", 'blob:'],
       },
     },
   }))

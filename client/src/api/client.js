@@ -76,12 +76,18 @@ export const api = {
 // A plain <a href> can't carry an Authorization header, and the download
 // route deliberately isn't a static file server (documents are confidential),
 // so downloads go through fetch + a blob URL instead of a bare link.
-export async function downloadDocument(docId, filename) {
-  const res = await fetch(`${getApiBase()}/documents/${docId}/download`, {
+export async function fetchDocumentBlob(docId) {
+  const res = await fetch(`${getApiBase()}/documents/${docId}/download?inline=1`, {
     headers: { Authorization: `Bearer ${token()}` },
   });
-  if (!res.ok) throw new Error("Could not download this document");
+  if (!res.ok) throw new Error("Could not open this document");
   const blob = await res.blob();
+  const contentType = res.headers.get("Content-Type") || blob.type || "";
+  const url = URL.createObjectURL(blob);
+  return { blob, url, contentType };
+}
+
+export function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -90,4 +96,10 @@ export async function downloadDocument(docId, filename) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+export async function downloadDocument(docId, filename) {
+  const { blob, url } = await fetchDocumentBlob(docId);
+  URL.revokeObjectURL(url);
+  triggerDownload(blob, filename);
 }
