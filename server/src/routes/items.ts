@@ -42,10 +42,10 @@ router.post('/:id/gates/:gate/items/:key/submit', upload.single('file'), async (
     return fail(res, 'This item is not open yet — the step before it must be completed first')
   }
 
-  // Mandatory docs from the BRD cannot be waived by the submitter.
-  const docRequired = itemDef.docRequired ? true : (req.body?.docRequired === 'true' || req.body?.docRequired === true || !!row.doc_required)
+  // Attachment is optional unless the user chose Yes.
+  const wantsDoc = req.body?.docRequired === 'true' || req.body?.docRequired === true
   const file = (req as unknown as { file?: Express.Multer.File }).file
-  if (docRequired && !file) return fail(res, 'A document is required for this item before it can be submitted')
+  if (wantsDoc && !file) return fail(res, 'You chose to attach a document — please upload a file, or choose No.')
 
   const remarks = req.body?.remarks ? String(req.body.remarks) : null
   const ts = now()
@@ -54,7 +54,7 @@ router.post('/:id/gates/:gate/items/:key/submit', upload.single('file'), async (
     SET status = 'submitted', doc_required = ?, remarks = ?, submitted_by = ?, submitted_at = ?,
         approved_by = NULL, approved_at = NULL, approval_comments = NULL, updated_at = ?
     WHERE id = ?
-  `, [docRequired ? 1 : 0, remarks, req.user!.id, ts, ts, row.id])
+  `, [file ? 1 : 0, remarks, req.user!.id, ts, ts, row.id])
 
   if (file) {
     const version = await nextVersionForItem(Number(row.id))

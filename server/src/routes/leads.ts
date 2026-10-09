@@ -182,4 +182,11 @@ router.post('/:id/reject', requirePipelineOperator, async (req, res) => {
   return okItem(res, await getLeadFullForUser(lead.id, req.user!))
 })
 
+router.delete('/:id', requirePipelineOperator, async (req, res) => {
+  const lead = await getLead(Number(req.params.id))
+  if (!lead) return fail(res, 'Not found', 404)
+  await run('DELETE FROM leads WHERE id = ?', [lead.id])
+  return okMessage(res, 'Lead deleted')
+})
+
 export default router

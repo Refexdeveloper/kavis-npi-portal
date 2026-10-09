@@ -32,10 +32,10 @@ function RequirePasswordReady({ children }) {
   return children;
 }
 
-function RequireAdmin({ children }) {
-  const { isAdmin, loading } = useAuth();
+function RequireUsersAccess({ children }) {
+  const { canManageUsers, loading } = useAuth();
   if (loading) return <div className="loading-screen">Loading&hellip;</div>;
-  if (!isAdmin) return <div className="loading-screen">Only Senior Management / Admin can access this page.</div>;
+  if (!canManageUsers) return <div className="loading-screen">Only Vinay or Senior Management can manage users.</div>;
   return children;
 }
 
@@ -72,7 +72,7 @@ function AppRoutes() {
         <Route path="/leads" element={<Leads />} />
         <Route path="/leads/new" element={<RequireCreateLead><AddLead /></RequireCreateLead>} />
         <Route path="/leads/:id" element={<LeadView />} />
-        <Route path="/users" element={<RequireAdmin><Users /></RequireAdmin>} />
+        <Route path="/users" element={<RequireUsersAccess><Users /></RequireUsersAccess>} />
         <Route path="/account" element={<Account />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

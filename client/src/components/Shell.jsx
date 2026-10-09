@@ -29,7 +29,7 @@ export default function Shell() {
   const [q, setQ] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, isAdmin, canSeeFullWorkflow, canCreateLead, roleLabel, displayName } = useAuth();
+  const { logout, isAdmin, canManageUsers, canSeeFullWorkflow, canCreateLead, roleLabel, displayName } = useAuth();
   const path = location.pathname;
 
   const titles = canSeeFullWorkflow
@@ -76,7 +76,7 @@ export default function Shell() {
     ...(canSeeFullWorkflow ? [{ to: "/funnel", label: "Stage Funnel", icon: "fa-filter" }] : []),
     { to: "/leads", label: canSeeFullWorkflow ? "Pipeline" : "My pipeline", icon: "fa-diagram-project" },
     ...(canCreateLead ? [{ to: "/leads/new", label: "New Lead", icon: "fa-plus-circle" }] : []),
-    ...(isAdmin ? [{ to: "/users", label: "Users & Access", icon: "fa-user-shield" }] : []),
+    ...(canManageUsers ? [{ to: "/users", label: "Users & Access", icon: "fa-user-shield" }] : []),
   ];
 
   return (
@@ -107,7 +107,7 @@ export default function Shell() {
             <ul className="navbar-nav">
               <li><NavLink to="/leads" title="Pipeline"><i className="fas fa-diagram-project" /></NavLink></li>
               {canSeeFullWorkflow ? <li><NavLink to="/funnel" title="Funnel"><i className="fas fa-filter" /></NavLink></li> : null}
-              {isAdmin ? <li><NavLink to="/users" title="Users"><i className="fas fa-user-shield" /></NavLink></li> : null}
+              {canManageUsers ? <li><NavLink to="/users" title="Users"><i className="fas fa-user-shield" /></NavLink></li> : null}
               <NotificationBell />
               {canCreateLead ? (
                 <li className={`dropdown ${createOpen ? "open" : ""}`}>
@@ -116,7 +116,7 @@ export default function Shell() {
                   </button>
                   <div className="dropdown-menu">
                     <NavLink to="/leads/new" onClick={() => setCreateOpen(false)}>New lead</NavLink>
-                    {isAdmin ? <NavLink to="/users" onClick={() => setCreateOpen(false)}>New user</NavLink> : null}
+                    {canManageUsers ? <NavLink to="/users" onClick={() => setCreateOpen(false)}>New user</NavLink> : null}
                   </div>
                 </li>
               ) : null}

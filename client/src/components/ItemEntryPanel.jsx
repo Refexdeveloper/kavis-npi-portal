@@ -22,9 +22,8 @@ export default function ItemEntryPanel({ lead, gate, item, onClose, onChange }) 
   const [previewDoc, setPreviewDoc] = useState(null);
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  // null = not chosen yet; true = Yes (show upload); false = No
-  const brdRequiresDoc = !!item.docRequired || !!item.docRequiredActual;
-  const [attachDoc, setAttachDoc] = useState(brdRequiresDoc ? true : null);
+  // Default No. Yes opens the file picker and a file is required before submit.
+  const [attachDoc, setAttachDoc] = useState(false);
 
   const meta = itemMeta(item.status);
   const due = dueMeta(item);
@@ -66,23 +65,15 @@ export default function ItemEntryPanel({ lead, gate, item, onClose, onChange }) 
 
   async function submit(e) {
     e.preventDefault();
-    if (attachDoc === null) {
-      toast.error("Choose Yes or No for document attachment.");
-      return;
-    }
-    if (brdRequiresDoc && !attachDoc) {
-      toast.error("This checklist item requires a document (BRD). Choose Yes and attach a file.");
-      return;
-    }
     if (attachDoc && !file) {
-      toast.error("Choose Yes opened the file window — please select a document, or choose No.");
+      toast.error("You chose Yes — upload a document, or choose No to continue without one.");
       return;
     }
     setBusy(true);
     try {
       const form = new FormData();
       form.append("remarks", remarks);
-      form.append("docRequired", String(brdRequiresDoc || attachDoc));
+      form.append("docRequired", String(!!attachDoc));
       if (attachDoc && file) form.append("file", file);
       const updated = await api.submitItem(lead.id, gate.key, item.key, form);
       toast.success(`"${item.label}" submitted`);
@@ -202,35 +193,28 @@ export default function ItemEntryPanel({ lead, gate, item, onClose, onChange }) 
                     </div>
 
                     <div className="rm-field">
-                      <label>
-                        Do you need to attach a document?
-                        {brdRequiresDoc ? " · required by BRD" : ""}
-                      </label>
+                      <label>Do you need to attach a document?</label>
                       <div className="doc-yesno" role="group" aria-label="Attach document">
                         <button
                           type="button"
-                          className={`btn btn-sm ${attachDoc === true ? "btn-theme" : "btn-default"}`}
+                          className={`btn btn-sm ${attachDoc ? "btn-theme" : "btn-default"}`}
                           onClick={() => chooseAttach(true)}
                         >
                           Yes
                         </button>
                         <button
                           type="button"
-                          className={`btn btn-sm ${attachDoc === false ? "btn-theme" : "btn-default"}`}
+                          className={`btn btn-sm ${!attachDoc ? "btn-theme" : "btn-default"}`}
                           onClick={() => chooseAttach(false)}
-                          disabled={brdRequiresDoc}
-                          title={brdRequiresDoc ? "This item requires a document" : undefined}
                         >
                           No
                         </button>
                       </div>
-                      {brdRequiresDoc ? (
-                        <span className="field-hint">BRD marks this checklist item as document-mandatory — choose Yes and attach a file.</span>
-                      ) : attachDoc === false ? (
-                        <span className="field-hint">No document will be uploaded with this entry.</span>
-                      ) : attachDoc === null ? (
-                        <span className="field-hint">Select Yes to open the file picker, or No to continue without a file.</span>
-                      ) : null}
+                      {attachDoc ? (
+                        <span className="field-hint">Yes requires a file before this step can be submitted.</span>
+                      ) : (
+                        <span className="field-hint">No document. You can still submit and close this stage.</span>
+                      )}
 
                       {/* Hidden input — opened programmatically when user chooses Yes */}
                       <input

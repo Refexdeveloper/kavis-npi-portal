@@ -60,7 +60,7 @@ export function isAdmin(user?: AuthUser | null) {
   return !!user && (Number(user.is_admin) === 1 || user.role === 'senior_management')
 }
 
-/** Pipeline operator (Vinay): can approve items/gates and run a lead to completion. Not Users admin. */
+/** Vinay (can_act_all) and Senior Management: pipeline, project delete, and user access. */
 export function canOperatePipeline(user?: AuthUser | null) {
   return isAdmin(user) || (!!user && Number(user.can_act_all) === 1)
 }
@@ -70,7 +70,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   return fail(res, 'Forbidden: Senior Management / Admin only', 403)
 }
 
-/** Admin or full-pipeline operator (can_act_all) — lead approvals / hold / reject. */
+/** Admin or full-pipeline operator (can_act_all) — approvals, delete, users. */
 export function requirePipelineOperator(req: Request, res: Response, next: NextFunction) {
   if (canOperatePipeline(req.user)) return next()
   return fail(res, 'Forbidden: Senior Management or full-pipeline operator only', 403)

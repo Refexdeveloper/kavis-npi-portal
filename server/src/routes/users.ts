@@ -3,21 +3,21 @@ import bcrypt from 'bcryptjs'
 import { all, get, now, run } from '../db/index.js'
 import { fail, okItem, okList, okMessage } from '../utils/response.js'
 import { transformUser } from '../services/users.js'
-import { requireAdmin } from '../middleware/auth.js'
+import { requirePipelineOperator } from '../middleware/auth.js'
 import { ROLE_LIST } from '../config/stageGates.js'
 
 const router = Router()
 
-router.get('/', requireAdmin, async (_req, res) => {
+router.get('/', requirePipelineOperator, async (_req, res) => {
   const rows = await all<{ id: number }>('SELECT id FROM users WHERE deleted_at IS NULL ORDER BY id')
   const users = []
   for (const r of rows) users.push(await transformUser(r.id))
   return okList(res, users)
 })
 
-router.get('/roles', requireAdmin, async (_req, res) => okItem(res, ROLE_LIST))
+router.get('/roles', requirePipelineOperator, async (_req, res) => okItem(res, ROLE_LIST))
 
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requirePipelineOperator, async (req, res) => {
   const username = String(req.body?.username || '').trim().toLowerCase()
   const fullName = String(req.body?.full_name || '').trim()
   const role = String(req.body?.role || '')
@@ -46,7 +46,7 @@ router.post('/', requireAdmin, async (req, res) => {
   return okItem(res, await transformUser(info.insertId), 201)
 })
 
-router.patch('/:id', requireAdmin, async (req, res) => {
+router.patch('/:id', requirePipelineOperator, async (req, res) => {
   const id = Number(req.params.id)
   const existing = await get('SELECT id FROM users WHERE id = ? AND deleted_at IS NULL', [id])
   if (!existing) return fail(res, 'Not found', 404)
@@ -80,7 +80,7 @@ router.patch('/:id', requireAdmin, async (req, res) => {
   return okItem(res, await transformUser(id))
 })
 
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', requirePipelineOperator, async (req, res) => {
   const id = Number(req.params.id)
   if (id === req.user!.id) return fail(res, 'You cannot deactivate your own account')
   await run('UPDATE users SET deleted_at = ?, activated = 0 WHERE id = ?', [now(), id])

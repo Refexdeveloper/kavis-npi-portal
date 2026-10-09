@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client.js";
 import { useAuth } from "../api/AuthContext.jsx";
 import { useToast } from "../components/Toast.jsx";
@@ -11,6 +11,7 @@ import { GATES } from "../lib/gates.js";
 
 export default function LeadView() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { role, canSeeFullWorkflow, canCreateLead, canOperatePipeline } = useAuth();
 
   const toast = useToast();
@@ -24,6 +25,8 @@ export default function LeadView() {
   const [moveGate, setMoveGate] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(() => {
     api.lead(id).then(setLead).catch((e) => toast.error(e.message));
@@ -123,6 +126,7 @@ export default function LeadView() {
             <span className={`label label-${meta.labelTone}`} style={{ fontSize: 12, padding: "5px 12px" }}>{meta.label}</span>
             {canEdit && !editOpen ? <button type="button" className="btn btn-default btn-sm" onClick={startEdit}>Edit details</button> : null}
             {canDrop ? <button type="button" className="btn btn-danger btn-sm" onClick={() => setDropOpen((v) => !v)}>Drop lead</button> : null}
+            {canOperatePipeline ? <button type="button" className="btn btn-danger btn-sm" onClick={() => setDeleteOpen((v) => !v)}>Delete project</button> : null}
             {canOperatePipeline ? <button type="button" className="btn btn-warning btn-sm" onClick={() => (lead.status === "on_hold" ? toggleHold() : setHoldOpen((v) => !v))}>{lead.status === "on_hold" ? "Resume" : "Put on hold"}</button> : null}
           </div>
         </div>
@@ -133,6 +137,33 @@ export default function LeadView() {
           <div className="rm-summary-row" style={{ background: "#fee2e2", border: "1px solid #dc2626", borderRadius: 12, padding: "12px 14px", marginTop: 14 }}><div><b style={{ display: "block" }}>Dropped</b><span>{lead.drop_reason}</span></div></div>
         ) : lead.status === "completed" ? (
           <div className="rm-summary-row" style={{ background: "#ecfdf5", border: "1px solid #059669", borderRadius: 12, padding: "12px 14px", marginTop: 14 }}><div><b style={{ display: "block" }}>All 3 gates complete</b><span>Agreement executed — ready for Technology Transfer / NPI execution handoff.</span></div></div>
+        ) : null}
+
+        {deleteOpen ? (
+          <div className="action-block action-block--warn" style={{ marginTop: 14 }}>
+            <p style={{ marginTop: 0 }}>Delete <b>{lead.ref_code}</b> permanently? Checklist items, documents, and history for this project will be removed.</p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button type="button" className="btn btn-default btn-sm" onClick={() => setDeleteOpen(false)}>Cancel</button>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    await api.deleteLead(lead.id);
+                    toast.success("Project deleted");
+                    navigate("/leads");
+                  } catch (err) {
+                    toast.error(err.message);
+                    setDeleting(false);
+                  }
+                }}
+              >
+                {deleting ? "Deleting…" : "Delete permanently"}
+              </button>
+            </div>
+          </div>
         ) : null}
 
         {dropOpen ? (

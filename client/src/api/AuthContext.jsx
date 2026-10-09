@@ -15,6 +15,7 @@ function capsFromUser(user) {
       isTeamHead: false,
       canActAll: false,
       canOperatePipeline: false,
+      canManageUsers: false,
       canSeeFullWorkflow: false,
       canCreateLead: false,
     };
@@ -28,6 +29,7 @@ function capsFromUser(user) {
     canActAll,
     // Approve items/gates, hold/reject, close stages to completion (Vinay + SM)
     canOperatePipeline: isAdmin || canActAll,
+    canManageUsers: isAdmin || canActAll,
     // Full BD / SM dashboard & funnel (Vinay included — no task-only mode)
     canSeeFullWorkflow: isAdmin || isBd,
     canCreateLead: isAdmin || isBd,

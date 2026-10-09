@@ -54,6 +54,7 @@ export const api = {
   holdLead: (id, reason) => request(`/leads/${id}/hold`, { method: "POST", json: { reason } }),
   resumeLead: (id) => request(`/leads/${id}/resume`, { method: "POST", json: {} }),
   dropLead: (id, reason) => request(`/leads/${id}/drop`, { method: "POST", json: { reason } }),
+  deleteLead: (id) => request(`/leads/${id}`, { method: "DELETE" }),
   moveLead: (id, gate) => request(`/leads/${id}/move`, { method: "POST", json: { gate } }),
   approveGate: (id, gate, comments) => request(`/leads/${id}/gates/${gate}/approve`, { method: "POST", json: { comments } }),
   rejectLead: (id, targetGate, reason) => request(`/leads/${id}/reject`, { method: "POST", json: { targetGate, reason } }),
