@@ -76,7 +76,10 @@ export default function Shell() {
     ...(canSeeFullWorkflow ? [{ to: "/funnel", label: "Stage Funnel", icon: "fa-filter" }] : []),
     { to: "/leads", label: canSeeFullWorkflow ? "Pipeline" : "My pipeline", icon: "fa-diagram-project" },
     ...(canCreateLead ? [{ to: "/leads/new", label: "New Lead", icon: "fa-plus-circle" }] : []),
-    ...(canManageUsers ? [{ to: "/users", label: "Users & Access", icon: "fa-user-shield" }] : []),
+    ...(canManageUsers ? [
+      { to: "/settings", label: "Workflow & roles", icon: "fa-gears" },
+      { to: "/users", label: "Users & Access", icon: "fa-user-shield" },
+    ] : []),
   ];
 
   return (
@@ -107,6 +110,7 @@ export default function Shell() {
             <ul className="navbar-nav">
               <li><NavLink to="/leads" title="Pipeline"><i className="fas fa-diagram-project" /></NavLink></li>
               {canSeeFullWorkflow ? <li><NavLink to="/funnel" title="Funnel"><i className="fas fa-filter" /></NavLink></li> : null}
+              {canManageUsers ? <li><NavLink to="/settings" title="Workflow and roles"><i className="fas fa-gears" /></NavLink></li> : null}
               {canManageUsers ? <li><NavLink to="/users" title="Users"><i className="fas fa-user-shield" /></NavLink></li> : null}
               <NotificationBell />
               {canCreateLead ? (

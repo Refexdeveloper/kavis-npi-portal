@@ -14,6 +14,7 @@
 import type { AuthUser } from '../middleware/auth.js'
 import { isAdmin } from '../middleware/auth.js'
 import type { GateItemDef, Role } from '../config/stageGates.js'
+import { roleCan } from './settings.js'
 
 export type VisibilityLevel = 'full' | 'summary' | 'hidden'
 
@@ -53,6 +54,7 @@ export function canAccessItemDetails(user: AuthUser, item: Pick<GateItemDef, 'ro
 export function canSubmitItem(user: AuthUser, item: Pick<GateItemDef, 'role' | 'supportRoles'>): boolean {
   if (isAdmin(user)) return true
   if (Number(user.can_act_all) === 1) return true
+  if (roleCan(user.role, 'can_submit_any')) return true
   return itemOwnerRoles(item).includes(user.role)
 }
 

@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { get, run, now } from '../db/index.js'
 import { fail, okItem, okList, okMessage } from '../utils/response.js'
-import { requirePipelineOperator, requireRole } from '../middleware/auth.js'
+import { requirePipelineOperator, requireProjectDelete, requireRole } from '../middleware/auth.js'
 import { logHistory } from '../services/history.js'
 import { findGate, nextGate, GATE_ORDER, GATE_LABELS, type GateKey } from '../config/stageGates.js'
 import {
@@ -182,7 +182,7 @@ router.post('/:id/reject', requirePipelineOperator, async (req, res) => {
   return okItem(res, await getLeadFullForUser(lead.id, req.user!))
 })
 
-router.delete('/:id', requirePipelineOperator, async (req, res) => {
+router.delete('/:id', requireProjectDelete, async (req, res) => {
   const lead = await getLead(Number(req.params.id))
   if (!lead) return fail(res, 'Not found', 404)
   await run('DELETE FROM leads WHERE id = ?', [lead.id])

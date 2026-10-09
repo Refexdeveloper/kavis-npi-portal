@@ -9,6 +9,7 @@ import Leads from "./pages/Leads.jsx";
 import LeadView from "./pages/LeadView.jsx";
 import AddLead from "./pages/AddLead.jsx";
 import Users from "./pages/Users.jsx";
+import Settings from "./pages/Settings.jsx";
 import Account from "./pages/Account.jsx";
 
 function RequireAuth({ children }) {
@@ -73,6 +74,7 @@ function AppRoutes() {
         <Route path="/leads/new" element={<RequireCreateLead><AddLead /></RequireCreateLead>} />
         <Route path="/leads/:id" element={<LeadView />} />
         <Route path="/users" element={<RequireUsersAccess><Users /></RequireUsersAccess>} />
+        <Route path="/settings" element={<RequireUsersAccess><Settings /></RequireUsersAccess>} />
         <Route path="/account" element={<Account />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

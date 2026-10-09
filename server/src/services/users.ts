@@ -1,6 +1,7 @@
 import { get } from '../db/index.js'
 import { isAdmin, type AuthUser } from '../middleware/auth.js'
 import { ROLE_LABELS, type Role } from '../config/stageGates.js'
+import { capsFor } from './settings.js'
 
 export async function transformUser(id: number) {
   const row = await get<Record<string, unknown>>(`
@@ -23,6 +24,7 @@ export async function transformUser(id: number) {
     is_admin: isAdmin({ ...row, id: Number(row.id) } as AuthUser),
     is_team_head: !!row.is_team_head,
     can_act_all: !!row.can_act_all,
+    ...capsFor({ role, is_admin: row.is_admin as number, can_act_all: row.can_act_all as number }),
     activated: !!row.activated,
     must_change_password: !!row.must_change_password,
     created_at: row.created_at,

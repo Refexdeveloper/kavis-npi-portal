@@ -113,3 +113,22 @@ CREATE TABLE IF NOT EXISTS history (
   CONSTRAINT fk_history_lead FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE,
   CONSTRAINT fk_history_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS workflow_items (
+  gate_key VARCHAR(32) NOT NULL,
+  item_key VARCHAR(64) NOT NULL,
+  owner_role VARCHAR(64) NOT NULL,
+  support_roles VARCHAR(512) NOT NULL DEFAULT '',
+  step INT NOT NULL DEFAULT 1,
+  PRIMARY KEY (gate_key, item_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+  role VARCHAR(64) NOT NULL PRIMARY KEY,
+  can_see_full_workflow TINYINT(1) NOT NULL DEFAULT 0,
+  can_create_lead TINYINT(1) NOT NULL DEFAULT 0,
+  can_submit_any TINYINT(1) NOT NULL DEFAULT 0,
+  can_approve TINYINT(1) NOT NULL DEFAULT 0,
+  can_manage_users TINYINT(1) NOT NULL DEFAULT 0,
+  can_delete_leads TINYINT(1) NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

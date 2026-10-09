@@ -14,6 +14,7 @@ import leadsRouter from './routes/leads.js'
 import itemsRouter from './routes/items.js'
 import documentsRouter from './routes/documents.js'
 import dashboardRouter from './routes/dashboard.js'
+import settingsRouter from './routes/settings.js'
 import { storageBackend } from './services/storage.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -81,6 +82,7 @@ export function createApp() {
   const api = express.Router()
   api.use(authRequired)
   api.use('/users', usersRouter)
+  api.use('/settings', settingsRouter)
   api.use('/dashboard', dashboardRouter)
   api.use('/documents', documentsRouter)
   api.use('/leads', leadsRouter)

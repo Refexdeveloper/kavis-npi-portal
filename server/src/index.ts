@@ -2,6 +2,7 @@ import dotenv from 'dotenv'
 import { createApp } from './app.js'
 import { migrate } from './db/index.js'
 import { seed } from './db/seed.js'
+import { ensureSettings } from './services/settings.js'
 import { storageLabel } from './services/storage.js'
 
 dotenv.config()
@@ -10,6 +11,7 @@ const port = Number(process.env.PORT) || 4300
 const host = process.env.HOST || '0.0.0.0'
 
 await migrate()
+await ensureSettings()
 await seed()
 
 const app = createApp()

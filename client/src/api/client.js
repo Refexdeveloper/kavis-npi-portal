@@ -72,6 +72,11 @@ export const api = {
   createUser: (body) => request("/users", { method: "POST", json: body }),
   patchUser: (id, body) => request(`/users/${id}`, { method: "PATCH", json: body }),
   deleteUser: (id) => request(`/users/${id}`, { method: "DELETE" }),
+
+  workflowSettings: () => request("/settings/workflow"),
+  saveWorkflowSettings: (items) => request("/settings/workflow", { method: "PUT", json: { items } }),
+  rolePermissions: () => request("/settings/role-permissions"),
+  saveRolePermissions: (roles) => request("/settings/role-permissions", { method: "PUT", json: { roles } }),
 };
 
 // A plain <a href> can't carry an Authorization header, and the download

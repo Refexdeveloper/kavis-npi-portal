@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { get } from '../db/index.js'
 import { fail } from '../utils/response.js'
 import type { Role } from '../config/stageGates.js'
+import { roleCan } from '../services/settings.js'
 
 export type AuthUser = {
   id: number
@@ -60,9 +61,25 @@ export function isAdmin(user?: AuthUser | null) {
   return !!user && (Number(user.is_admin) === 1 || user.role === 'senior_management')
 }
 
-/** Vinay (can_act_all) and Senior Management: pipeline, project delete, and user access. */
-export function canOperatePipeline(user?: AuthUser | null) {
+function elevated(user?: AuthUser | null) {
   return isAdmin(user) || (!!user && Number(user.can_act_all) === 1)
+}
+
+/** Approve items, close stages, hold/reject. Role flag or Vinay/Admin. */
+export function canOperatePipeline(user?: AuthUser | null) {
+  return elevated(user) || (!!user && roleCan(user.role, 'can_approve'))
+}
+
+export function canManageUserAccess(user?: AuthUser | null) {
+  return elevated(user) || (!!user && roleCan(user.role, 'can_manage_users'))
+}
+
+export function canDeleteProjects(user?: AuthUser | null) {
+  return elevated(user) || (!!user && roleCan(user.role, 'can_delete_leads'))
+}
+
+export function canEditSettings(user?: AuthUser | null) {
+  return canOperatePipeline(user) || canManageUserAccess(user)
 }
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
@@ -74,6 +91,21 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 export function requirePipelineOperator(req: Request, res: Response, next: NextFunction) {
   if (canOperatePipeline(req.user)) return next()
   return fail(res, 'Forbidden: Senior Management or full-pipeline operator only', 403)
+}
+
+export function requireSettingsEditor(req: Request, res: Response, next: NextFunction) {
+  if (canEditSettings(req.user)) return next()
+  return fail(res, 'Forbidden: workflow and role settings are limited to Vinay and Admin', 403)
+}
+
+export function requireUserManager(req: Request, res: Response, next: NextFunction) {
+  if (canManageUserAccess(req.user)) return next()
+  return fail(res, 'Forbidden: user access is limited to Vinay and Admin', 403)
+}
+
+export function requireProjectDelete(req: Request, res: Response, next: NextFunction) {
+  if (canDeleteProjects(req.user)) return next()
+  return fail(res, 'Forbidden: project delete is limited to Vinay and Admin', 403)
 }
 
 /** Passes if the user holds one of the given roles, or is Admin/Senior Management. */

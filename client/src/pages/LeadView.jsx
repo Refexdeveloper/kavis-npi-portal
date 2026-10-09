@@ -12,7 +12,7 @@ import { GATES } from "../lib/gates.js";
 export default function LeadView() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { role, canSeeFullWorkflow, canCreateLead, canOperatePipeline } = useAuth();
+  const { role, canSeeFullWorkflow, canCreateLead, canOperatePipeline, canDeleteLeads } = useAuth();
 
   const toast = useToast();
   const [lead, setLead] = useState(null);
@@ -126,7 +126,7 @@ export default function LeadView() {
             <span className={`label label-${meta.labelTone}`} style={{ fontSize: 12, padding: "5px 12px" }}>{meta.label}</span>
             {canEdit && !editOpen ? <button type="button" className="btn btn-default btn-sm" onClick={startEdit}>Edit details</button> : null}
             {canDrop ? <button type="button" className="btn btn-danger btn-sm" onClick={() => setDropOpen((v) => !v)}>Drop lead</button> : null}
-            {canOperatePipeline ? <button type="button" className="btn btn-danger btn-sm" onClick={() => setDeleteOpen((v) => !v)}>Delete project</button> : null}
+            {canDeleteLeads ? <button type="button" className="btn btn-danger btn-sm" onClick={() => setDeleteOpen((v) => !v)}>Delete project</button> : null}
             {canOperatePipeline ? <button type="button" className="btn btn-warning btn-sm" onClick={() => (lead.status === "on_hold" ? toggleHold() : setHoldOpen((v) => !v))}>{lead.status === "on_hold" ? "Resume" : "Put on hold"}</button> : null}
           </div>
         </div>
