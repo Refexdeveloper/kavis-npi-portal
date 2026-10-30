@@ -278,6 +278,23 @@ gcloud run domain-mappings create --service ${SERVICE} --domain npi.yourdomain.c
 
 Set `CLIENT_ORIGIN` if you use additional front-door domains.
 
+### Automatic deploy from GitHub (CI/CD)
+
+Every push to `main` on `Refexdeveloper/kavis-npi-portal` runs `.github/workflows/deploy.yml`:
+typecheck + Vite build → Docker image tagged with the commit SHA (and `latest`) → `gcloud run services update` → smoke test.
+It can also be started by hand from the GitHub **Actions** tab (**Run workflow**).
+
+No JSON key is stored in GitHub. Actions signs in with Workload Identity Federation:
+
+| Piece | Value |
+|---|---|
+| Identity pool / provider | `kavis-github` / `github` (only accepts repository `Refexdeveloper/kavis-npi-portal`) |
+| Deploy service account | `kavis-npi-deployer@master-diorama-489103-u2.iam.gserviceaccount.com` |
+| Its permissions | Artifact Registry writer on repo `kavis`, Cloud Run developer on `kavis-npi-portal`, act-as on `kavis-npi-run` |
+
+The workflow only swaps the image. Cloud SQL, GCS bucket, secrets and env vars on the service are left as they are.
+To roll back, redeploy an earlier commit's image: `gcloud run services update kavis-npi-portal --region asia-south1 --image asia-south1-docker.pkg.dev/master-diorama-489103-u2/kavis/kavis-npi-portal:<commit-sha>`.
+
 ---
 
 ## 7. Local production-like run (before GCP)
