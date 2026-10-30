@@ -62,11 +62,20 @@ export async function getLead(id: number): Promise<LeadRow | undefined> {
   return get<LeadRow>('SELECT * FROM leads WHERE id = ?', [id])
 }
 
+/** Highest existing sequence + 1, so numbers freed by deleted projects are never handed out again. */
 export async function generateRefCode(): Promise<string> {
   const year = new Date().getFullYear()
-  const row = await get<{ c: number }>(`SELECT COUNT(*) as c FROM leads WHERE ref_code LIKE ?`, [`KV-${year}-%`])
-  const seq = String((row?.c ?? 0) + 1).padStart(3, '0')
+  const row = await get<{ n: number | null }>(
+    `SELECT MAX(CAST(SUBSTRING_INDEX(ref_code, '-', -1) AS UNSIGNED)) AS n FROM leads WHERE ref_code LIKE ?`,
+    [`KV-${year}-%`],
+  )
+  const seq = String(Number(row?.n ?? 0) + 1).padStart(3, '0')
   return `KV-${year}-${seq}`
+}
+
+function isDuplicateRef(err: unknown) {
+  const e = err as { code?: string; message?: string }
+  return e?.code === 'ER_DUP_ENTRY' && String(e.message || '').includes('uk_leads_ref')
 }
 
 export async function createLead(input: {
@@ -79,8 +88,17 @@ export async function createLead(input: {
   potentMolecule?: boolean
   notes?: string
 }, actor: AuthUser) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await insertLead(input, actor, await generateRefCode())
+    } catch (err) {
+      if (!isDuplicateRef(err) || attempt >= 5) throw err
+    }
+  }
+}
+
+async function insertLead(input: Parameters<typeof createLead>[0], actor: AuthUser, refCode: string) {
   const ts = now()
-  const refCode = await generateRefCode()
 
   return withTransaction(async () => {
     const info = await run(`
