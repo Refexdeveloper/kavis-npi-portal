@@ -62,7 +62,7 @@ export async function getLead(id: number): Promise<LeadRow | undefined> {
   return get<LeadRow>('SELECT * FROM leads WHERE id = ?', [id])
 }
 
-/** Highest existing sequence + 1, so numbers freed by deleted projects are never handed out again. */
+/** Highest existing sequence + 1 (not a row count), so gaps left by deleted projects can't cause a clash. */
 export async function generateRefCode(): Promise<string> {
   const year = new Date().getFullYear()
   const row = await get<{ n: number | null }>(
