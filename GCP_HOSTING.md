@@ -114,7 +114,22 @@ Cloud Run (1 service)
 
 **Prefer on Cloud Run:** set `INSTANCE_CONNECTION_NAME` and attach the Cloud SQL instance to the service (Unix socket). Do **not** expose Cloud SQL publicly unless you must.
 
-### 4.3 Document storage (GCS)
+### 4.3 Email notifications (optional until SMTP is ready)
+
+| Variable | Purpose |
+|---|---|
+| `SMTP_HOST` | SMTP server. If unset, every notification is written to `email_logs` as `skipped` |
+| `SMTP_PORT` | Usually `587` (STARTTLS) or `465` (SSL) |
+| `SMTP_SECURE` | `true` for port 465 |
+| `SMTP_USER` / `SMTP_PASS` | Auth (leave blank for open relay / IP allowlist) |
+| `SMTP_FROM` | From header, e.g. `Kavis Pharma NPI <noreply@kavispharma.com>` |
+| `APP_BASE_URL` | Portal URL used in email CTA links |
+| `STAGE_SLA_DAYS` | Stage deadline for email reminders (default **2**) |
+| `MAIL_SLA_SWEEP_MINUTES` | How often the SLA email job runs (default 30) |
+
+In-app TAT / SLA bell logic is unchanged. Stage email SLA is separate (2 days per stage). Vinay/Admin → **Email log** (`/mail-logs`) to review failures and skipped sends. Item submit emails attach the uploaded document when one exists.
+
+### 4.4 Document storage (GCS)
 
 | Variable | Required | Example / notes |
 |----------|----------|-----------------|

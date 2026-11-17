@@ -15,7 +15,9 @@ import itemsRouter from './routes/items.js'
 import documentsRouter from './routes/documents.js'
 import dashboardRouter from './routes/dashboard.js'
 import settingsRouter from './routes/settings.js'
+import mailLogsRouter from './routes/mailLogs.js'
 import { storageBackend } from './services/storage.js'
+import { mailConfigured, stageSlaDays } from './services/mail.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 /** Vite build output (client/vite.config.js → outDir: "out") */
@@ -74,6 +76,8 @@ export function createApp() {
       serve_client: servingFrontend,
       database: 'mysql',
       storage: storageBackend(),
+      mail: mailConfigured() ? 'smtp' : 'not_configured',
+      stage_sla_days: stageSlaDays(),
     })
   })
 
@@ -83,6 +87,7 @@ export function createApp() {
   api.use(authRequired)
   api.use('/users', usersRouter)
   api.use('/settings', settingsRouter)
+  api.use('/mail-logs', mailLogsRouter)
   api.use('/dashboard', dashboardRouter)
   api.use('/documents', documentsRouter)
   api.use('/leads', leadsRouter)

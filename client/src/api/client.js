@@ -77,6 +77,9 @@ export const api = {
   saveWorkflowSettings: (items) => request("/settings/workflow", { method: "PUT", json: { items } }),
   rolePermissions: () => request("/settings/role-permissions"),
   saveRolePermissions: (roles) => request("/settings/role-permissions", { method: "PUT", json: { roles } }),
+
+  mailLogs: (status = "all") => request(`/mail-logs?status=${encodeURIComponent(status)}`),
+  runMailSlaSweep: () => request("/mail-logs/sla-sweep", { method: "POST", json: {} }),
 };
 
 // A plain <a href> can't carry an Authorization header, and the download

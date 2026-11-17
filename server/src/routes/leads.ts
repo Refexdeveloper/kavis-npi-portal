@@ -7,6 +7,9 @@ import { findGate, nextGate, GATE_ORDER, GATE_LABELS, type GateKey } from '../co
 import {
   createLead, getLead, getLeadFullForUser, getLeadItems, listLeadSummaries, canViewLead, activateReachedStep,
 } from '../services/leads.js'
+import {
+  notifyGateApproved, notifyLeadCreated, notifyLeadRejected, notifyLeadStatus,
+} from '../services/notifications.js'
 
 const router = Router()
 
@@ -32,6 +35,7 @@ router.post('/', requireRole('business_development'), async (req, res) => {
     notes: req.body?.notes ? String(req.body.notes) : undefined,
   }, req.user!)
 
+  void notifyLeadCreated(leadId, req.user!)
   return okItem(res, await getLeadFullForUser(leadId, req.user!), 201)
 })
 
@@ -70,6 +74,7 @@ router.post('/:id/hold', requirePipelineOperator, async (req, res) => {
   const reason = String(req.body?.reason || 'Placed on hold by Admin.')
   await run(`UPDATE leads SET status = 'on_hold', hold_reason = ?, updated_at = ? WHERE id = ?`, [reason, now(), lead.id])
   await logHistory(lead.id, req.user!, 'Placed On Hold', reason)
+  void notifyLeadStatus(lead.id, 'lead_hold', req.user!, reason)
   return okItem(res, await getLeadFullForUser(lead.id, req.user!))
 })
 
@@ -79,6 +84,7 @@ router.post('/:id/resume', requirePipelineOperator, async (req, res) => {
   if (lead.status !== 'on_hold') return fail(res, 'Lead is not on hold')
   await run(`UPDATE leads SET status = 'active', hold_reason = NULL, updated_at = ? WHERE id = ?`, [now(), lead.id])
   await logHistory(lead.id, req.user!, 'Resumed', 'Lead resumed from hold.')
+  void notifyLeadStatus(lead.id, 'lead_resume', req.user!)
   return okItem(res, await getLeadFullForUser(lead.id, req.user!))
 })
 
@@ -90,6 +96,7 @@ router.post('/:id/drop', requireRole('business_development'), async (req, res) =
   if (!reason) return fail(res, 'A reason is required to drop a lead')
   await run(`UPDATE leads SET status = 'dropped', drop_reason = ?, updated_at = ? WHERE id = ?`, [reason, now(), lead.id])
   await logHistory(lead.id, req.user!, 'Dropped', `Lead dropped at ${GATE_LABELS[lead.current_gate]} — ${reason}`)
+  void notifyLeadStatus(lead.id, 'lead_drop', req.user!, reason)
   return okItem(res, await getLeadFullForUser(lead.id, req.user!))
 })
 
@@ -136,6 +143,7 @@ router.post('/:id/gates/:gate/approve', requirePipelineOperator, async (req, res
   }
 
   await logHistory(lead.id, req.user!, 'Gate Approved', `${gateDef.name} approved by ${req.user!.full_name}. ${comments}${next ? ` Advanced to ${GATE_LABELS[next]}.` : ' All 3 gates complete — lead marked Completed.'}`)
+  void notifyGateApproved(lead.id, gate, req.user!, next, !next)
   return okItem(res, await getLeadFullForUser(lead.id, req.user!))
 })
 
@@ -179,6 +187,7 @@ router.post('/:id/reject', requirePipelineOperator, async (req, res) => {
   await run(`UPDATE leads SET current_gate = ?, status = 'active', updated_at = ? WHERE id = ?`, [targetGate, ts, lead.id])
   await activateReachedStep(lead.id, targetGate)
   await logHistory(lead.id, req.user!, 'Rejected', `Revised back to ${targetDef.name} by ${req.user!.full_name} — ${reason}`)
+  void notifyLeadRejected(lead.id, targetGate, req.user!, reason)
   return okItem(res, await getLeadFullForUser(lead.id, req.user!))
 })
 

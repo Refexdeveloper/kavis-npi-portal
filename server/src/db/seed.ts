@@ -41,20 +41,23 @@ async function ensureUsers(): Promise<Record<string, number>> {
   const ids: Record<string, number> = {}
   for (const u of USERS) {
     const existing = await get<{ id: number }>('SELECT id FROM users WHERE username = ?', [u.username])
+    const demoEmail = `${u.username.replace(/\./g, '.')}@kavispharma.com`
     if (existing) {
       ids[u.username] = existing.id
       // Keep team-head / can_act_all flags in sync for existing DBs so ACL demos stay accurate.
+      // Fill missing demo emails so stage/approval notifications have recipients before SMTP is set.
       await run(
-        'UPDATE users SET is_team_head = ?, can_act_all = ?, updated_at = ? WHERE id = ?',
-        [u.is_team_head ? 1 : 0, u.can_act_all ? 1 : 0, ts, existing.id],
+        `UPDATE users SET is_team_head = ?, can_act_all = ?,
+         email = COALESCE(NULLIF(TRIM(email), ''), ?), updated_at = ? WHERE id = ?`,
+        [u.is_team_head ? 1 : 0, u.can_act_all ? 1 : 0, demoEmail, ts, existing.id],
       )
       continue
     }
     const info = await run(`
-      INSERT INTO users (username, password, full_name, role, client_company, is_admin, is_team_head, can_act_all, activated, must_change_password, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+      INSERT INTO users (username, password, full_name, email, role, client_company, is_admin, is_team_head, can_act_all, activated, must_change_password, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
     `, [
-      u.username, hash, u.full_name, u.role, u.client_company || null,
+      u.username, hash, u.full_name, demoEmail, u.role, u.client_company || null,
       u.role === 'senior_management' ? 1 : 0, u.is_team_head ? 1 : 0, u.can_act_all ? 1 : 0, ts, ts,
     ])
     ids[u.username] = info.insertId

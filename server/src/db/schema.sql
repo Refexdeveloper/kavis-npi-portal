@@ -132,3 +132,23 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   can_manage_users TINYINT(1) NOT NULL DEFAULT 0,
   can_delete_leads TINYINT(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS email_logs (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  event_type VARCHAR(64) NOT NULL,
+  lead_id INT UNSIGNED NULL,
+  ref_code VARCHAR(32) NULL,
+  recipients TEXT NOT NULL,
+  subject VARCHAR(512) NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  error_message TEXT NULL,
+  dedupe_key VARCHAR(191) NULL,
+  attachment_names TEXT NULL,
+  meta_json TEXT NULL,
+  created_at DATETIME NOT NULL,
+  KEY idx_email_logs_status (status),
+  KEY idx_email_logs_created (created_at),
+  KEY idx_email_logs_lead (lead_id),
+  KEY idx_email_logs_dedupe (dedupe_key),
+  CONSTRAINT fk_email_logs_lead FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

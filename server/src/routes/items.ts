@@ -8,6 +8,7 @@ import { findGate, findItem, GATE_LABELS } from '../config/stageGates.js'
 import { logHistory } from '../services/history.js'
 import { getLead, getLeadFullForUser, getLeadItems, nextVersionForItem, canViewLead, currentStepInGate, activateReachedStep } from '../services/leads.js'
 import { canSubmitItem } from '../services/permissions.js'
+import { notifyItemApproved, notifyItemSubmitted } from '../services/notifications.js'
 
 const router = Router()
 
@@ -67,6 +68,7 @@ router.post('/:id/gates/:gate/items/:key/submit', upload.single('file'), async (
   }
 
   await logHistory(leadId, req.user!, 'Submitted', `"${itemDef.label}" (${GATE_LABELS[gate as keyof typeof GATE_LABELS]}) submitted by ${req.user!.full_name}.${file ? ` Document attached: ${file.originalname}.` : ''}`)
+  void notifyItemSubmitted(leadId, gate, key, req.user!, Number(row.id))
   return okItem(res, await getLeadFullForUser(leadId, req.user!))
 })
 
@@ -92,6 +94,7 @@ router.post('/:id/gates/:gate/items/:key/approve', requirePipelineOperator, asyn
   await activateReachedStep(leadId, gate)
 
   await logHistory(leadId, req.user!, 'Approved', `"${itemDef.label}" (${GATE_LABELS[gate as keyof typeof GATE_LABELS]}) approved by ${req.user!.full_name}. ${comments}`)
+  void notifyItemApproved(leadId, gate, key, req.user!, row.submitted_by != null ? Number(row.submitted_by) : null)
   return okItem(res, await getLeadFullForUser(leadId, req.user!))
 })
 

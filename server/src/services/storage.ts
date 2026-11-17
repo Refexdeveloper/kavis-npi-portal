@@ -93,6 +93,15 @@ export async function getObjectStream(key: string): Promise<{
   }
 }
 
+export async function getObjectBuffer(key: string): Promise<{ buffer: Buffer; contentType?: string }> {
+  const { stream, contentType } = await getObjectStream(key)
+  const chunks: Buffer[] = []
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  }
+  return { buffer: Buffer.concat(chunks), contentType }
+}
+
 export async function objectExists(key: string): Promise<boolean> {
   if (storageBackend() === 'gcs') {
     const bucket = await getGcsBucket()
