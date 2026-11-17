@@ -140,14 +140,14 @@ In-app TAT / SLA bell logic is unchanged. Stage email SLA is separate (2 days pe
 
 **Auth to GCS:** Cloud Run service account with `roles/storage.objectAdmin` (or tighter custom role) on that bucket. **No JSON key file in the Docker image.**
 
-### 4.4 Client (build-time, usually leave unset in prod)
+### 4.5 Client (build-time, usually leave unset in prod)
 
 | Variable | Required | Notes |
 |----------|----------|-------|
 | `VITE_API_URL` | No | Prod uses same-origin `/api/v1` |
 | `VITE_API_PORT` | Dev only | Vite proxy to API (`4300`) |
 
-### 4.5 Demo / seed accounts (app data, not GCP)
+### 4.6 Demo / seed accounts (app data, not GCP)
 
 After migrate/seed (or first Cloud Run start):
 
@@ -160,7 +160,7 @@ After migrate/seed (or first Cloud Run start):
 
 **Change these passwords in production** (or disable seed / skip demo data).
 
-### 4.6 GCP project identities (platform credentials)
+### 4.7 GCP project identities (platform credentials)
 
 | Credential | Purpose |
 |------------|---------|
