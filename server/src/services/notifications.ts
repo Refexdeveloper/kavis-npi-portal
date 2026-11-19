@@ -7,8 +7,8 @@ import {
   type GateKey,
   type Role,
 } from '../config/stageGates.js'
-import { getLead, getLeadItems, type LeadRow } from './leads.js'
-import { appBaseUrl, sendNotificationMail, stageSlaDays, type MailAttachment } from './mail.js'
+import { getLead, getLeadItems, pendingForSeniorManagement, pendingItemsForRole, type LeadRow } from './leads.js'
+import { alreadySent, appBaseUrl, sendNotificationMail, stageSlaDays, type MailAttachment } from './mail.js'
 import { getObjectBuffer } from './storage.js'
 import type { AuthUser } from '../middleware/auth.js'
 
@@ -19,6 +19,7 @@ type MailUser = {
   role: string
   can_act_all: number
   is_admin: number
+  is_team_head: number
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -33,7 +34,10 @@ function gateLabel(gate: string) {
 
 async function usersWithEmail(whereSql: string, params: unknown[] = []) {
   return all<MailUser>(
-    `SELECT id, full_name, email, role, COALESCE(can_act_all, 0) AS can_act_all, COALESCE(is_admin, 0) AS is_admin
+    `SELECT id, full_name, email, role,
+            COALESCE(can_act_all, 0) AS can_act_all,
+            COALESCE(is_admin, 0) AS is_admin,
+            COALESCE(is_team_head, 0) AS is_team_head
      FROM users
      WHERE deleted_at IS NULL AND activated = 1
        AND email IS NOT NULL AND TRIM(email) <> ''
@@ -64,12 +68,99 @@ async function bdAndElevated() {
 async function userById(id: number | null | undefined) {
   if (!id) return null
   const row = await get<MailUser>(
-    `SELECT id, full_name, email, role, COALESCE(can_act_all, 0) AS can_act_all, COALESCE(is_admin, 0) AS is_admin
+    `SELECT id, full_name, email, role,
+            COALESCE(can_act_all, 0) AS can_act_all,
+            COALESCE(is_admin, 0) AS is_admin,
+            COALESCE(is_team_head, 0) AS is_team_head
      FROM users WHERE id = ? AND deleted_at IS NULL AND activated = 1
        AND email IS NOT NULL AND TRIM(email) <> ''`,
     [id],
   )
   return row || null
+}
+
+function todayKeyInTz(timeZone = process.env.MAIL_TIMEZONE || 'Asia/Kolkata') {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+}
+
+function currentHourInTz(timeZone = process.env.MAIL_TIMEZONE || 'Asia/Kolkata') {
+  const hour = Number(
+    new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hour12: false }).format(new Date()),
+  )
+  return Number.isFinite(hour) ? hour : new Date().getUTCHours()
+}
+
+/** Team heads (and elevated/SM accounts) get one daily digest of their open pending work. */
+export async function runDailyTeamHeadPendingDigests(opts?: { force?: boolean }) {
+  const hour = Number(process.env.MAIL_DAILY_HOUR || 9)
+  if (!opts?.force && currentHourInTz() !== hour) return { sent: 0, skippedHour: true as const }
+
+  const day = todayKeyInTz()
+  const recipients = await usersWithEmail(
+    `is_team_head = 1 OR can_act_all = 1 OR is_admin = 1 OR role = 'senior_management'`,
+  )
+
+  let sent = 0
+  for (const user of recipients) {
+    const dedupeKey = `daily_pending_digest:${user.id}:${day}`
+    if (!opts?.force && (await alreadySent(dedupeKey))) continue
+
+    const details: { label: string; value: string }[] = []
+    if (user.role === 'senior_management' || Number(user.is_admin) === 1) {
+      const sm = await pendingForSeniorManagement()
+      for (const item of sm.itemsAwaitingApproval.slice(0, 25)) {
+        details.push({
+          label: String(item.refCode),
+          value: `Approve: ${item.itemLabel} · ${item.gateName}`,
+        })
+      }
+      for (const gate of sm.gatesAwaitingApproval.slice(0, 10)) {
+        details.push({
+          label: String(gate.refCode),
+          value: `Close stage: ${gate.gateName}`,
+        })
+      }
+    } else {
+      const items = await pendingItemsForRole(user.role, null, {
+        canActAll: Number(user.can_act_all) === 1,
+      })
+      for (const item of items.slice(0, 30)) {
+        details.push({
+          label: item.refCode,
+          value: `${item.itemLabel} · ${item.gateName} · ${item.status}${item.isSupport ? ' (support)' : ''}`,
+        })
+      }
+    }
+
+    if (!details.length) continue
+
+    await notify({
+      eventType: 'daily_pending_digest',
+      to: [user.email],
+      subject: `[Kavis NPI] Daily reminder — ${details.length} pending action(s) (${day})`,
+      title: 'Daily pending activities',
+      intro: `Good morning ${user.full_name}. Here are the open NPI checklist items for your team today. Please action or escalate as needed.`,
+      details: [
+        { label: 'Date', value: day },
+        { label: 'Role', value: ROLE_LABELS[user.role as Role] || user.role },
+        { label: 'Open items', value: String(details.length) },
+        ...details,
+      ],
+      ctaUrl: `${appBaseUrl()}/`,
+      ctaLabel: 'Open my tasks',
+      note: 'This reminder is sent once per day to Team Heads and pipeline owners. Item/stage SLA alerts continue separately when deadlines are missed.',
+      dedupeKey,
+      meta: { userId: user.id, count: details.length },
+    })
+    sent += 1
+  }
+
+  return { sent, day }
 }
 
 function emailsOf(users: MailUser[]) {
@@ -438,9 +529,12 @@ export function startNotificationScheduler() {
   const minutes = Math.max(5, Number(process.env.MAIL_SLA_SWEEP_MINUTES || 30))
   const run = () => {
     runSlaEmailSweep().catch((err) => console.error('[mail] SLA sweep failed', err))
+    runDailyTeamHeadPendingDigests().catch((err) => console.error('[mail] daily digest failed', err))
   }
   // First pass a minute after boot so migrate/seed finish and Cloud Run is warm.
   setTimeout(run, 60_000)
   sweepTimer = setInterval(run, minutes * 60_000)
-  console.log(`[mail] SLA email sweep every ${minutes} minutes (stage SLA ${stageSlaDays()} days)`)
+  const dailyHour = process.env.MAIL_DAILY_HOUR || '9'
+  const tz = process.env.MAIL_TIMEZONE || 'Asia/Kolkata'
+  console.log(`[mail] SLA email sweep every ${minutes} minutes (stage SLA ${stageSlaDays()} days); daily team-head digests at ${dailyHour}:00 ${tz}`)
 }

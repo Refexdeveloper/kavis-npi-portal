@@ -22,11 +22,14 @@ router.post('/', requireUserManager, async (req, res) => {
   const fullName = String(req.body?.full_name || '').trim()
   const role = String(req.body?.role || '')
   const password = String(req.body?.password || '')
-  const email = req.body?.email ? String(req.body.email).trim() : null
+  const email = req.body?.email ? String(req.body.email).trim() : ''
   const clientCompany = req.body?.client_company ? String(req.body.client_company).trim() : null
 
   if (!username || !fullName || !role) return fail(res, 'Username, full name and role are required')
   if (!ROLE_LIST.includes(role as any)) return fail(res, 'Unknown role')
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return fail(res, 'A valid email address is required so stage and daily reminders can be delivered')
+  }
   if (password.length < 8) return fail(res, 'Password must be at least 8 characters')
   if (role === 'client' && !clientCompany) return fail(res, 'Client company is required for the Client role, so their account only sees their own leads')
 
@@ -53,7 +56,15 @@ router.patch('/:id', requireUserManager, async (req, res) => {
 
   const fields: string[] = []
   const params: unknown[] = []
-  const map: Record<string, string> = { full_name: 'full_name', email: 'email', client_company: 'client_company', activated: 'activated' }
+  if (req.body?.email !== undefined) {
+    const email = String(req.body.email || '').trim()
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return fail(res, 'A valid email address is required so stage and daily reminders can be delivered')
+    }
+    fields.push('email = ?')
+    params.push(email)
+  }
+  const map: Record<string, string> = { full_name: 'full_name', client_company: 'client_company', activated: 'activated' }
   for (const [k, col] of Object.entries(map)) {
     if (req.body?.[k] !== undefined) { fields.push(`${col} = ?`); params.push(req.body[k]) }
   }

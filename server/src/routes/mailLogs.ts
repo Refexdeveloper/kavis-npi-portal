@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { fail, okItem } from '../utils/response.js'
 import { requireUserManager } from '../middleware/auth.js'
 import { emailLogStats, listEmailLogs } from '../services/mail.js'
-import { runSlaEmailSweep } from '../services/notifications.js'
+import { runDailyTeamHeadPendingDigests, runSlaEmailSweep } from '../services/notifications.js'
 
 const router = Router()
 
@@ -21,6 +21,11 @@ router.get('/', async (req, res) => {
 router.post('/sla-sweep', async (_req, res) => {
   await runSlaEmailSweep()
   return okItem(res, { ok: true, message: 'SLA email sweep completed' })
+})
+
+router.post('/daily-digest', async (_req, res) => {
+  const result = await runDailyTeamHeadPendingDigests({ force: true })
+  return okItem(res, { ok: true, message: 'Daily team-head pending digests triggered', ...result })
 })
 
 router.get('/:id', async (req, res) => {

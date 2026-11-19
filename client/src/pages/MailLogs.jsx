@@ -43,6 +43,19 @@ export default function MailLogs() {
     }
   }
 
+  async function runDaily() {
+    setBusy(true);
+    try {
+      const data = await api.runMailDailyDigest();
+      toast.success(`Daily digests sent: ${data.sent ?? 0}`);
+      await load();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="rm-page">
       <div className="rm-page-head">
@@ -50,9 +63,14 @@ export default function MailLogs() {
           <h1>Email notification log</h1>
           <p>Stage, approval and SLA emails. Failures and skipped sends (SMTP not set yet) stay here for review. Existing in-app TAT alerts are unchanged.</p>
         </div>
-        <button type="button" className="btn btn-default btn-sm" disabled={busy} onClick={runSweep}>
-          {busy ? "Running…" : "Run SLA sweep now"}
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" className="btn btn-default btn-sm" disabled={busy} onClick={runSweep}>
+            {busy ? "Running…" : "Run SLA sweep now"}
+          </button>
+          <button type="button" className="btn btn-theme btn-sm" disabled={busy} onClick={runDaily}>
+            {busy ? "Running…" : "Send daily Team Head digests"}
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>

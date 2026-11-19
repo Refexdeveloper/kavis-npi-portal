@@ -100,18 +100,19 @@ export default function Users() {
         </div>
         <p className="text-muted" style={{ margin: "0 16px 12px", fontSize: 13 }}>
           Changing a user&apos;s <b>role</b> updates permissions across the app (server reads role from the database on every request).
-          The user should refresh or re-open the tab to refresh their session UI.
+          Every account needs a work <b>email</b> for stage/approval alerts and the daily Team Head pending reminder. SSO/AD can be added later without changing this mapping.
         </p>
         <div className="table-responsive">
           <table className="table table-striped table-hover data-list-table">
             <thead>
-              <tr>{["Name", "Username", "Role", "Flags", "Scope", "Status", ""].map((h) => <th key={h}>{h}</th>)}</tr>
+              <tr>{["Name", "Username", "Email", "Role", "Flags", "Scope", "Status", ""].map((h) => <th key={h}>{h}</th>)}</tr>
             </thead>
             <tbody>
               {rows.map((u) => (
                 <tr key={u.id}>
                   <td><strong>{u.full_name}</strong></td>
                   <td className="mono">{u.username}</td>
+                  <td style={{ fontSize: 12 }}>{u.email || <span style={{ color: "#b91c1c" }}>Missing</span>}</td>
                   <td>{u.role_label}</td>
                   <td>
                     {u.is_admin ? <span className="label label-primary" style={{ marginRight: 4 }}>Admin</span> : null}
@@ -140,8 +141,8 @@ export default function Users() {
             <Field label="Username" required hint="Used to sign in — lowercase, no spaces.">
               <input className="form-control" required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.trim() })} placeholder="e.g. quality.newperson" />
             </Field>
-            <Field label="Email">
-              <input className="form-control" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <Field label="Email" required hint="Used for stage, approval and daily pending reminders.">
+              <input className="form-control" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="name@kavispharma.com" />
             </Field>
             <Field label="Role" required>
               <select className="form-control" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
@@ -154,7 +155,7 @@ export default function Users() {
               </Field>
             ) : (
               <>
-                <Field label="Team Head" hint="Sees complete details for their function&apos;s checklist items.">
+                <Field label="Team Head" hint="Sees complete details for their function&apos;s checklist items and receives the daily pending digest.">
                   <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
                     <input type="checkbox" checked={!!form.is_team_head} onChange={(e) => setForm({ ...form, is_team_head: e.target.checked })} />
                     <span>Mark as Team Head for this role</span>
@@ -185,8 +186,8 @@ export default function Users() {
             <Field label="Full name" required>
               <input className="form-control" required value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} />
             </Field>
-            <Field label="Email">
-              <input className="form-control" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            <Field label="Email" required hint="Required for reminders. Keep the mapped work mailbox here before SSO/AD is connected.">
+              <input className="form-control" type="email" required value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} placeholder="name@kavispharma.com" />
             </Field>
             <Field label="Role" required hint="Changing role updates access rules across the portal immediately on the server.">
               <select className="form-control" value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}>

@@ -80,6 +80,7 @@ export const api = {
 
   mailLogs: (status = "all") => request(`/mail-logs?status=${encodeURIComponent(status)}`),
   runMailSlaSweep: () => request("/mail-logs/sla-sweep", { method: "POST", json: {} }),
+  runMailDailyDigest: () => request("/mail-logs/daily-digest", { method: "POST", json: {} }),
 };
 
 // A plain <a href> can't carry an Authorization header, and the download
