@@ -80,6 +80,11 @@ export function fromAddress() {
   return env('SMTP_FROM', 'Kavis Pharma NPI <noreply@kavispharma.com>')
 }
 
+function isMissingLeadFk(err: unknown) {
+  const e = err as { code?: string; errno?: number }
+  return e?.code === 'ER_NO_REFERENCED_ROW_2' || e?.errno === 1452
+}
+
 async function writeLog(row: {
   eventType: string
   leadId?: number | null
@@ -92,24 +97,33 @@ async function writeLog(row: {
   attachmentNames?: string[]
   meta?: Record<string, unknown>
 }) {
-  await run(
-    `INSERT INTO email_logs
+  const params = [
+    row.eventType,
+    row.leadId ?? null,
+    row.refCode ?? null,
+    row.recipients.join(', '),
+    row.subject,
+    row.status,
+    row.errorMessage ?? null,
+    row.dedupeKey ?? null,
+    (row.attachmentNames || []).join(', ') || null,
+    row.meta ? JSON.stringify(row.meta) : null,
+    now(),
+  ]
+  const sql = `INSERT INTO email_logs
       (event_type, lead_id, ref_code, recipients, subject, status, error_message, dedupe_key, attachment_names, meta_json, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      row.eventType,
-      row.leadId ?? null,
-      row.refCode ?? null,
-      row.recipients.join(', '),
-      row.subject,
-      row.status,
-      row.errorMessage ?? null,
-      row.dedupeKey ?? null,
-      (row.attachmentNames || []).join(', ') || null,
-      row.meta ? JSON.stringify(row.meta) : null,
-      now(),
-    ],
-  )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  try {
+    await run(sql, params)
+  } catch (err) {
+    // Lead may already be deleted by the time async mail finishes — keep the log with null lead_id.
+    if (row.leadId != null && isMissingLeadFk(err)) {
+      params[1] = null
+      await run(sql, params)
+      return
+    }
+    throw err
+  }
 }
 
 export async function alreadySent(dedupeKey: string | null | undefined) {

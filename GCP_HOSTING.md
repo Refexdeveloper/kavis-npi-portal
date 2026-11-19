@@ -118,11 +118,12 @@ Cloud Run (1 service)
 
 | Variable | Purpose |
 |---|---|
-| `SMTP_HOST` | SMTP server. If unset, every notification is written to `email_logs` as `skipped` |
-| `SMTP_PORT` | Usually `587` (STARTTLS) or `465` (SSL) |
-| `SMTP_SECURE` | `true` for port 465 |
-| `SMTP_USER` / `SMTP_PASS` | Auth (leave blank for open relay / IP allowlist) |
-| `SMTP_FROM` | From header, e.g. `Kavis Pharma NPI <noreply@kavispharma.com>` |
+| `SMTP_HOST` | Microsoft 365: `smtp.office365.com` (if unset, logs as `skipped`) |
+| `SMTP_PORT` | `587` (STARTTLS) for Office 365 |
+| `SMTP_SECURE` | `false` for port 587 |
+| `SMTP_USER` | Mailbox, e.g. `Stagegate_Alerts@kavispharma.com` |
+| `SMTP_PASS` | Secret Manager secret `kavis-smtp-password` (never store in git) |
+| `SMTP_FROM` | Must match mailbox: `Kavis Pharma NPI <Stagegate_Alerts@kavispharma.com>` |
 | `APP_BASE_URL` | Portal URL used in email CTA links |
 | `STAGE_SLA_DAYS` | Stage deadline for email reminders (default **2**) |
 | `MAIL_SLA_SWEEP_MINUTES` | How often the SLA email job runs (default 30) |
